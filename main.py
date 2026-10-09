@@ -8,6 +8,7 @@ from io import BytesIO
 from logging.handlers import RotatingFileHandler
 from datetime import datetime, date, timedelta
 from typing import List, Optional
+from urllib.parse import quote
 
 import cv2
 import numpy as np
@@ -75,7 +76,7 @@ async def cleanup_old_snapshots_task():
                         os.remove(fpath)
                         count += 1
             if count > 0:
-                logger.info(f"[CLEANUP] Đã dọn dẹp {count} ảnh snapshot cũ hơn 30 ngày.")
+                logger.info(f"[CLEANUP] Đã dọn dẹp {count} ảnh snapshot cũ.")
         except Exception as e:
             logger.error(f"[CLEANUP ERROR] {e}")
         await asyncio.sleep(86400)
@@ -152,7 +153,6 @@ def student_login(payload: LoginPayload, db: Session = Depends(get_db)):
     if not student:
         raise HTTPException(status_code=401, detail="Mã sinh viên không tồn tại trong hệ thống!")
 
-    # Nếu sinh viên chưa có mật khẩu, mặc định lấy chính Mã SV làm mật khẩu ban đầu
     if not student.password_hash:
         student.password_hash = hash_password(sid)
         db.commit()
@@ -177,11 +177,7 @@ def lookup_student_attendance(
     auth: HTTPAuthorizationCredentials = Depends(security_bearer),
     db: Session = Depends(get_db)
 ):
-    """
-    Tra cứu điểm danh:
-    - Sinh viên: Tự động xem chính mình.
-    - Giảng viên: Tra cứu theo mã sinh viên bất kỳ.
-    """
+    """Tra cứu điểm danh: Sinh viên xem chính mình, Giảng viên xem bất kỳ."""
     if not auth:
         raise HTTPException(status_code=401, detail="Yêu cầu đăng nhập để tra cứu dữ liệu!")
     payload = decode_token(auth.credentials)
@@ -255,7 +251,6 @@ def process_single_attendance(payload: EdgeAttendancePayload, current_device: De
             subject_name = sch.subject_name
             target_class = getattr(sch, 'class_name', '').strip()
 
-            # Phân loại sinh viên thuộc đúng lớp hay lớp khác đi ngang qua
             if target_class and student_class != target_class:
                 status_str = f"Không thuộc lớp (Lớp {student_class})"
             elif cur_minutes <= late_limit:
@@ -264,7 +259,7 @@ def process_single_attendance(payload: EdgeAttendancePayload, current_device: De
                 status_str = "Đi trễ"
             break
 
-    # Cơ chế Debounce 10 phút chống gửi lặp
+    # Debounce 10 phút chống gửi lặp
     cooldown_limit = check_time - timedelta(minutes=10)
     recent_log = db.query(AttendanceLog).filter(
         AttendanceLog.student_id == target_sid,
@@ -361,7 +356,6 @@ async def receive_bulk_attendance(
             processed += 1
             await manager.broadcast({"event": "NEW_ATTENDANCE", "data": res})
 
-    logger.info(f"[BULK-SYNC] Nhận {len(payloads)} từ {current_device.device_id}. Lưu: {processed}, Bỏ qua: {ignored}")
     return {"status": "success", "room": current_device.room_name, "inserted": processed, "ignored": ignored}
 
 # -------------------------------------------------------------
@@ -384,7 +378,6 @@ def sync_all(
             })
         except Exception as e:
             logger.error(f"Lỗi giải mã vector sinh viên {s.student_id}: {e}")
-    logger.info(f"[SYNC] Camera {current_device.device_id} tải {len(results)} vector.")
     return results
 
 # -------------------------------------------------------------
@@ -413,7 +406,6 @@ def register_new_device(payload: RegisterDevicePayload, db: Session = Depends(ge
     db.add(new_device)
     db.commit()
 
-    logger.info(f"[DEVICE] Đã đăng ký camera {dev_id} phòng {new_device.room_name}")
     return {
         "status": "success",
         "message": f"Đã đăng ký camera cho phòng {new_device.room_name}",
@@ -443,7 +435,7 @@ def delete_device(device_id: str, db: Session = Depends(get_db)):
     return {"status": "success", "message": f"Đã xóa thiết bị {device_id}"}
 
 # -------------------------------------------------------------
-# 8. QUẢN LÝ HỒ SƠ SINH VIÊN
+# 8. QUẢN LÝ HỒ SƠ SINH VIÊN EKYC
 # -------------------------------------------------------------
 @app.get("/api/v1/students/check/{student_id}")
 def check_student_exists(student_id: str, db: Session = Depends(get_db)):
@@ -572,7 +564,7 @@ async def delete_student(payload: DeleteStudentPayload, db: Session = Depends(ge
     return {"status": "success", "message": f"Đã xóa thành công sinh viên {full_name} ({sid})"}
 
 # -------------------------------------------------------------
-# 9. CRUD LỊCH HỌC & XUẤT BÁO CÁO EXCEL MA TRẬN
+# 9. CRUD LỊCH HỌC, TRA CỨU MA TRẬN & XUẤT EXCEL CHỐNG LỖI LATIN-1
 # -------------------------------------------------------------
 @app.get("/api/v1/schedules/list")
 def get_schedules(db: Session = Depends(get_db)):
@@ -675,20 +667,21 @@ def get_subjects(db: Session = Depends(get_db)):
     logged_subjects = [s[0] for s in db.query(AttendanceLog.subject_name).distinct().all() if s[0]]
     return sorted(list(set(subjects + logged_subjects)))
 
-@app.get("/api/v1/attendance/export-by-class", dependencies=[Depends(get_current_admin)])
-def export_attendance_by_class(
+@app.get("/api/v1/attendance/preview-by-class", dependencies=[Depends(get_current_admin)])
+def preview_attendance_by_class(
     class_name: str,
     subject_name: str,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
+    """API xem trước ma trận điểm danh của lớp trước khi xuất Excel."""
     class_name = class_name.strip()
     subject_name = subject_name.strip()
 
     students = db.query(Student).filter(Student.class_name == class_name).order_by(Student.student_id).all()
     if not students:
-        raise HTTPException(status_code=404, detail=f"Không tìm thấy sinh viên nào thuộc lớp {class_name}")
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy sinh viên nào thuộc lớp '{class_name}'.")
 
     log_query = db.query(AttendanceLog).filter(AttendanceLog.subject_name == subject_name)
     if start_date:
@@ -715,41 +708,131 @@ def export_attendance_by_class(
         if map_key not in attendance_map or "Đúng giờ" in log.status:
             attendance_map[map_key] = f"{log.status} ({time_key})"
 
-    rows = []
+    records = []
     for idx, stu in enumerate(students):
-        row = {
-            "STT": idx + 1,
-            "Mã Sinh Viên": stu.student_id,
-            "Họ và Tên": stu.full_name,
-            "Lớp": stu.class_name
+        item = {
+            "stt": idx + 1,
+            "student_id": stu.student_id,
+            "full_name": stu.full_name,
+            "class_name": stu.class_name,
+            "dates": {},
+            "summary": {"dung": 0, "tre": 0, "vang": 0}
         }
-        dung, tre, vang = 0, 0, 0
         for d in unique_dates:
             status_text = attendance_map.get((stu.student_id, d), "Vắng")
-            row[f"Ngày {d}"] = status_text
+            item["dates"][d] = status_text
             if "Đúng giờ" in status_text:
-                dung += 1
+                item["summary"]["dung"] += 1
             elif "Đi trễ" in status_text:
-                tre += 1
+                item["summary"]["tre"] += 1
             else:
-                vang += 1
-        row["Tổng Đúng Giờ"] = dung
-        row["Tổng Đi Trễ"] = tre
-        row["Tổng Vắng"] = vang
-        rows.append(row)
+                item["summary"]["vang"] += 1
+        records.append(item)
 
-    df = pd.DataFrame(rows)
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name=f"{class_name[:15]}_{subject_name[:15]}")
+    return {
+        "class_name": class_name,
+        "subject_name": subject_name,
+        "dates": unique_dates,
+        "records": records
+    }
 
-    output.seek(0)
-    filename = f"DiemDanh_{class_name}_{subject_name}_{datetime.now().strftime('%Y%m%d')}.xlsx"
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+@app.get("/api/v1/attendance/export-by-class", dependencies=[Depends(get_current_admin)])
+def export_attendance_by_class(
+    class_name: str,
+    subject_name: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Xuất file Excel ma trận điểm danh chi tiết kèm giải pháp chống lỗi Latin-1 chuẩn RFC 5987."""
+    try:
+        class_name = class_name.strip()
+        subject_name = subject_name.strip()
+
+        students = db.query(Student).filter(Student.class_name == class_name).order_by(Student.student_id).all()
+        if not students:
+            raise HTTPException(status_code=404, detail=f"Không tìm thấy sinh viên nào thuộc lớp '{class_name}'.")
+
+        log_query = db.query(AttendanceLog).filter(AttendanceLog.subject_name == subject_name)
+        if start_date:
+            try:
+                s_dt = datetime.combine(datetime.strptime(start_date, "%Y-%m-%d").date(), datetime.min.time())
+                log_query = log_query.filter(AttendanceLog.timestamp >= s_dt)
+            except Exception:
+                pass
+        if end_date:
+            try:
+                e_dt = datetime.combine(datetime.strptime(end_date, "%Y-%m-%d").date(), datetime.max.time())
+                log_query = log_query.filter(AttendanceLog.timestamp <= e_dt)
+            except Exception:
+                pass
+
+        logs = log_query.all()
+        unique_dates = sorted(list(set(log.timestamp.strftime("%d/%m/%Y") for log in logs)))
+
+        attendance_map = {}
+        for log in logs:
+            date_key = log.timestamp.strftime("%d/%m/%Y")
+            time_key = log.timestamp.strftime("%H:%M")
+            map_key = (log.student_id, date_key)
+            if map_key not in attendance_map or "Đúng giờ" in log.status:
+                attendance_map[map_key] = f"{log.status} ({time_key})"
+
+        rows = []
+        for idx, stu in enumerate(students):
+            row = {
+                "STT": idx + 1,
+                "Mã Sinh Viên": stu.student_id,
+                "Họ và Tên": stu.full_name,
+                "Lớp": stu.class_name
+            }
+            dung, tre, vang = 0, 0, 0
+            for d in unique_dates:
+                status_text = attendance_map.get((stu.student_id, d), "Vắng")
+                row[f"Ngày {d}"] = status_text
+                if "Đúng giờ" in status_text:
+                    dung += 1
+                elif "Đi trễ" in status_text:
+                    tre += 1
+                else:
+                    vang += 1
+            row["Tổng Đúng Giờ"] = dung
+            row["Tổng Đi Trễ"] = tre
+            row["Tổng Vắng"] = vang
+            rows.append(row)
+
+        df = pd.DataFrame(rows)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # Tên sheet Excel an toàn
+            safe_sheet = f"{class_name[:10]}_{subject_name[:10]}"
+            df.to_excel(writer, index=False, sheet_name=safe_sheet)
+
+        output.seek(0)
+        
+        # Xử lý tên file mã hóa chuẩn RFC 5987 để hỗ trợ tiếng Việt không lỗi latin-1
+        clean_class = "".join(c for c in class_name if c.isalnum() or c in (' ', '_', '-')).strip()
+        clean_subj = "".join(c for c in subject_name if c.isalnum() or c in (' ', '_', '-')).strip()
+        date_str = datetime.now().strftime('%Y%m%d')
+        
+        filename_utf8 = f"DiemDanh_{clean_class}_{clean_subj}_{date_str}.xlsx"
+        encoded_filename = quote(filename_utf8)
+        fallback_filename = f"DiemDanh_Lop_{date_str}.xlsx"
+
+        headers = {
+            "Content-Disposition": f"attachment; filename=\"{fallback_filename}\"; filename*=UTF-8''{encoded_filename}"
+        }
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"[EXPORT ERROR] {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi máy chủ khi tạo file Excel: {str(e)}")
 
 # -------------------------------------------------------------
 # 10. WEBSOCKET & INDEX HTML ROUTING

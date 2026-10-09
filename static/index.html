@@ -41,14 +41,13 @@
                 </div>
             </div>
 
-            <!-- TABS ĐIỀU HƯỚNG: TRẢI DÀI TRÊN 1 HÀNG -->
+            <!-- TABS ĐIỀU HƯỚNG -->
             <nav class="flex items-center justify-start lg:justify-center gap-4 xl:gap-8 text-sm font-medium text-slate-600 h-full whitespace-nowrap flex-1">
-                <!-- Tab dành cho Sinh viên & Tra cứu chung -->
                 <button onclick="switchTab('student-portal')" id="tab-btn-student-portal" class="flex items-center gap-1.5 h-full active-tab transition whitespace-nowrap px-1">
                     <span>🎓</span> Tra Cứu Điểm Danh
                 </button>
 
-                <!-- Các Tab quản trị dành riêng cho Giảng Viên -->
+                <!-- Các Tab dành riêng cho Giảng Viên -->
                 <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
                     <span>🟢</span> Giám Sát & Báo Cáo
                 </button>
@@ -145,11 +144,12 @@
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                             <span>📥</span> Xuất Sổ Điểm Danh Chi Tiết Theo Lớp & Môn Học
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Dành cho Giảng viên: Thống kê chi tiết từng ngày sinh viên đi học, đúng giờ, đi trễ hoặc vắng</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Dành cho Giảng viên: Tra cứu xem trước trực tiếp trên giao diện và tải báo cáo Excel</p>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <!-- BỘ LỌC VÀ NÚT BẤM -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                     <div>
                         <label class="text-xs font-bold text-slate-700 block mb-1.5">Chọn Lớp Sinh Hoạt *</label>
                         <select id="export-class" class="w-full p-2.5 text-xs border rounded-xl bg-slate-50 font-semibold"></select>
@@ -171,10 +171,33 @@
                         </div>
                     </div>
 
+                    <!-- NÚT TRA CỨU -->
                     <div>
-                        <button onclick="downloadClassAttendanceExcel()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-sm transition">
+                        <button onclick="previewClassAttendance()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition">
+                            <span>🔍</span> TRA CỨU
+                        </button>
+                    </div>
+
+                    <!-- NÚT TẢI EXCEL (ẨN MẶC ĐỊNH, CHỈ HIỆN KHI ĐÃ CÓ KẾT QUẢ) -->
+                    <div>
+                        <button id="btn-export-excel" onclick="downloadClassAttendanceExcel()" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition">
                             <span>📊</span> TẢI BÁO CÁO EXCEL
                         </button>
+                    </div>
+                </div>
+
+                <!-- KHU VỰC HIỂN THỊ KẾT QUẢ MA TRẬN ĐIỂM DANH -->
+                <div id="preview-result-container" class="hidden mt-6 border-t border-slate-100 pt-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 id="preview-title" class="text-xs sm:text-sm font-bold text-slate-800"></h3>
+                        <span id="preview-count" class="text-xs text-slate-500 font-semibold"></span>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-xl">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead id="preview-table-head" class="bg-slate-50 text-slate-700 border-b"></thead>
+                            <tbody id="preview-table-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -650,14 +673,14 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT XỬ LÝ TOÀN BỘ LOGIC -->
+    <!-- JAVASCRIPT XỬ LÝ TOÀN BỘ LOGIC CLIENT -->
     <script>
         // ==============================================================
         // 1. PHÂN QUYỀN ĐĂNG NHẬP DUY NHẤT (SINGLE SESSION)
         // ==============================================================
-        let currentAuthRole = 'student'; // 'student' hoặc 'teacher'
+        let currentAuthRole = 'student';
         let currentToken = sessionStorage.getItem("auth_token") || null;
-        let currentUserRole = sessionStorage.getItem("user_role") || null; // 'admin' hoặc 'student'
+        let currentUserRole = sessionStorage.getItem("user_role") || null;
 
         function updateRoleUI() {
             const btnAuth = document.getElementById("btn-auth-main");
@@ -675,7 +698,6 @@
                 roleBadge.className = "text-[11px] text-emerald-600 font-bold whitespace-nowrap";
                 teacherElements.forEach(el => el.classList.remove("hidden"));
                 
-                // Mở giao diện tra cứu dành cho Giảng Viên
                 authPrompt.classList.add("hidden");
                 dataTable.classList.remove("hidden");
                 teacherSearchBox.classList.remove("hidden");
@@ -690,7 +712,6 @@
                 roleBadge.className = "text-[11px] text-blue-600 font-bold whitespace-nowrap";
                 teacherElements.forEach(el => el.classList.add("hidden"));
                 
-                // Mở giao diện cá nhân của Sinh Viên
                 authPrompt.classList.add("hidden");
                 dataTable.classList.remove("hidden");
                 teacherSearchBox.classList.add("hidden");
@@ -779,7 +800,7 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    sessionStorage.clear(); // Xóa phiên cũ để đảm bảo chỉ có 1 phiên đăng nhập
+                    sessionStorage.clear();
                     currentToken = data.access_token;
                     currentUserRole = data.role;
                     sessionStorage.setItem("auth_token", currentToken);
@@ -1120,6 +1141,7 @@
                 if (laserBeam) laserBeam.classList.remove('hidden');
             }
 
+            // BƯỚC 1: NHÌN THẲNG TRỰC DIỆN
             if (currentPoseStep === 1) {
                 const isFacingStraight = (noseRatio >= 0.42 && noseRatio <= 0.58);
 
@@ -1283,7 +1305,7 @@
         }
 
         // ==============================================================
-        // 4. CÁC HÀM QUẢN TRỊ DÀNH CHO GIẢNG VIÊN
+        // 4. CÁC HÀM QUẢN TRỊ DÀNH CHO GIẢNG VIÊN (TRA CỨU VÀ TẢI EXCEL)
         // ==============================================================
         async function loadExportFilters() {
             try {
@@ -1307,8 +1329,13 @@
             }
         }
 
-        function downloadClassAttendanceExcel() {
-            if (currentUserRole !== 'admin') return alert("Cần quyền Giảng viên!");
+        // HÀM TRA CỨU VÀ HIỂN THỊ MA TRẬN TRÊN BẢNG
+        async function previewClassAttendance() {
+            if (currentUserRole !== 'admin' || !currentToken) {
+                alert("Cần quyền Giảng viên để thực hiện chức năng này!");
+                return;
+            }
+
             const className = document.getElementById('export-class').value;
             const subjectName = document.getElementById('export-subject').value;
             const startDate = document.getElementById('export-start-date').value;
@@ -1319,10 +1346,133 @@
                 return;
             }
 
-            let url = `/api/v1/attendance/export-by-class?class_name=${encodeURIComponent(className)}&subject_name=${encodeURIComponent(subjectName)}&token=${encodeURIComponent(currentToken)}`;
+            let url = `/api/v1/attendance/preview-by-class?class_name=${encodeURIComponent(className)}&subject_name=${encodeURIComponent(subjectName)}`;
             if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
             if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-            window.location.href = url;
+
+            try {
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    alert("Lỗi: " + (data.detail || "Không lấy được dữ liệu"));
+                    return;
+                }
+
+                // Render Header bảng
+                const thead = document.getElementById('preview-table-head');
+                let headHtml = `
+                    <tr>
+                        <th class="p-2.5 font-bold">STT</th>
+                        <th class="p-2.5 font-bold">Mã SV</th>
+                        <th class="p-2.5 font-bold">Họ và Tên</th>
+                        <th class="p-2.5 font-bold">Lớp</th>
+                `;
+                data.dates.forEach(d => {
+                    headHtml += `<th class="p-2.5 font-bold text-center border-l">${d}</th>`;
+                });
+                headHtml += `
+                        <th class="p-2.5 font-bold text-center bg-emerald-50 text-emerald-800 border-l">Đúng giờ</th>
+                        <th class="p-2.5 font-bold text-center bg-rose-50 text-rose-800">Đi trễ</th>
+                        <th class="p-2.5 font-bold text-center bg-slate-100 text-slate-700">Vắng</th>
+                    </tr>
+                `;
+                thead.innerHTML = headHtml;
+
+                // Render Body bảng
+                const tbody = document.getElementById('preview-table-body');
+                tbody.innerHTML = '';
+                data.records.forEach(r => {
+                    let rowHtml = `
+                        <tr class="hover:bg-slate-50 border-b">
+                            <td class="p-2.5 text-slate-400 font-mono">${r.stt}</td>
+                            <td class="p-2.5 font-mono font-bold text-blue-600">${r.student_id}</td>
+                            <td class="p-2.5 font-medium">${r.full_name}</td>
+                            <td class="p-2.5">${r.class_name}</td>
+                    `;
+                    data.dates.forEach(d => {
+                        const status = r.dates[d] || 'Vắng';
+                        let badge = 'text-slate-400';
+                        if (status.includes('Đúng giờ')) badge = 'text-emerald-600 font-bold';
+                        else if (status.includes('Đi trễ')) badge = 'text-rose-600 font-bold';
+
+                        rowHtml += `<td class="p-2.5 text-center border-l ${badge}">${status}</td>`;
+                    });
+                    rowHtml += `
+                            <td class="p-2.5 text-center font-bold text-emerald-600 bg-emerald-50/50 border-l">${r.summary.dung}</td>
+                            <td class="p-2.5 text-center font-bold text-rose-600 bg-rose-50/50">${r.summary.tre}</td>
+                            <td class="p-2.5 text-center font-bold text-slate-600 bg-slate-50">${r.summary.vang}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += rowHtml;
+                });
+
+                document.getElementById('preview-title').textContent = `Kết quả: Lớp ${data.class_name} - Môn ${data.subject_name}`;
+                document.getElementById('preview-count').textContent = `Tổng cộng: ${data.records.length} sinh viên`;
+                document.getElementById('preview-result-container').classList.remove('hidden');
+                document.getElementById('btn-export-excel').classList.remove('hidden');
+
+            } catch (err) {
+                alert("Lỗi kết nối Server: " + err.message);
+            }
+        }
+
+        // HÀM TẢI FILE EXCEL CÓ KÈM HEADER AUTH VÀ BLOB AN TOÀN
+        async function downloadClassAttendanceExcel() {
+            if (currentUserRole !== 'admin' || !currentToken) {
+                alert("Cần quyền Giảng viên / Quản trị viên để thực hiện!");
+                return;
+            }
+            const className = document.getElementById('export-class').value;
+            const subjectName = document.getElementById('export-subject').value;
+            const startDate = document.getElementById('export-start-date').value;
+            const endDate = document.getElementById('export-end-date').value;
+
+            if (!className || !subjectName) {
+                alert("Vui lòng chọn đầy đủ Lớp và Môn học!");
+                return;
+            }
+
+            let url = `/api/v1/attendance/export-by-class?class_name=${encodeURIComponent(className)}&subject_name=${encodeURIComponent(subjectName)}`;
+            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
+            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    let errorMsg = "Không thể tải file báo cáo";
+                    try {
+                        const errData = await response.json();
+                        errorMsg = errData.detail || errorMsg;
+                    } catch (e) {
+                        errorMsg = await response.text();
+                    }
+                    alert("Lỗi tải báo cáo: " + errorMsg);
+                    return;
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                a.download = `DiemDanh_${className}_${subjectName}_${today}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+
+            } catch (error) {
+                alert("Lỗi kết nối khi tải file: " + error.message);
+            }
         }
 
         function closeTokenBox() {
