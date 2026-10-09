@@ -1,0 +1,108 @@
+[2026-10-08 22:33:43,837] [INFO] Edge/Client kết nối WebSocket thành công. Tổng kết nối: 1
+[2026-10-08 22:38:49,861] [INFO] [ENROLL] Đăng ký thành công v (Tin cậy: 100.0%)
+[2026-10-08 22:39:04,328] [INFO] [DELETE] Đã xóa sinh viên v (1)
+[2026-10-08 22:40:27,657] [INFO] Đã ngắt kết nối WebSocket. Còn lại: 0
+[2026-10-08 22:41:58,514] [INFO] Client/Edge kết nối WebSocket. Tổng kết nối: 1
+[2026-10-08 22:42:19,756] [INFO] [ENROLL] Đăng ký thành công d (Tin cậy: 99.9%)
+[2026-10-08 22:42:28,766] [INFO] [DELETE] Đã xóa sinh viên d (123)
+[2026-10-08 22:43:18,983] [INFO] [SCHEDULE] Đã tạo lịch môn Hòa phòng F404
+[2026-10-08 22:44:13,608] [INFO] Đã ngắt kết nối WebSocket. Còn lại: 0
+[2026-10-09 09:17:10,894] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 09:18:37,948] [INFO] Admin đăng nhập thành công.
+[2026-10-09 09:19:56,185] [INFO] Admin đăng nhập thành công.
+[2026-10-09 09:23:53,100] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:23:53,791] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 09:26:19,661] [INFO] Admin đăng nhập thành công.
+[2026-10-09 09:26:23,865] [INFO] [DEVICE] Đã đăng ký camera CAM_F404 cho phòng F404
+[2026-10-09 09:28:41,101] [INFO] [ENROLL] Đăng ký thành công Nguyễn Phi Song Toàn (Tin cậy: 99.9%)
+[2026-10-09 09:39:35,425] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:40:54,368] [INFO] [ATTENDANCE] Unknown (SV10221001) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:42:12,455] [INFO] [ATTENDANCE] Unknown (SV10221001) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:42:58,498] [INFO] [SCHEDULE] Đã tạo lịch môn a phòng F404
+[2026-10-09 09:43:16,299] [INFO] [ATTENDANCE] Unknown (SV102210012) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:44:51,054] [INFO] [ATTENDANCE] Unknown (SV10221012) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:45:41,477] [INFO] [SCHEDULE] Đã tạo lịch môn á phòng F404
+[2026-10-09 09:45:50,771] [INFO] [ATTENDANCE] Unknown (SV1021012) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:46:03,602] [INFO] [ATTENDANCE] Unknown (SV19021012) -> Phòng: F404 (Ngoài giờ học)
+[2026-10-09 09:48:14,715] [INFO] [ATTENDANCE] Unknown (SV19021012) -> Phòng: F404 (Đúng giờ)
+[2026-10-09 09:48:25,363] [INFO] [ATTENDANCE] Unknown (SV19021012) -> Phòng: F404 (Đi trễ)
+[2026-10-09 09:50:53,477] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:54:13,357] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:54:17,827] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:54:18,624] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:54:56,484] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:54:56,877] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:56:46,537] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:56:57,619] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:57:03,056] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:57:03,391] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:58:26,655] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:59:06,631] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 09:59:17,218] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 09:59:17,536] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 10:00:09,181] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:00:32,632] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 10:00:39,582] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:00:39,924] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 10:00:52,154] [INFO] [DEVICE] Đã đăng ký camera CAM_F404 phòng F404
+[2026-10-09 10:01:27,529] [INFO] [SCHEDULE] Đã tạo lịch môn u phòng F404
+[2026-10-09 10:02:21,338] [INFO] [ENROLL] Đăng ký thành công Nguyễn Phi Song Toàn (Tin cậy: 100.0%)
+[2026-10-09 10:02:51,541] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Ngoài giờ học
+[2026-10-09 10:03:15,490] [INFO] [SCHEDULE] Đã tạo lịch môn s phòng F404
+[2026-10-09 10:03:20,040] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Đi trễ
+[2026-10-09 10:03:52,696] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Ngoài giờ học
+[2026-10-09 10:04:10,351] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Đúng giờ
+[2026-10-09 10:04:19,177] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Đúng giờ
+[2026-10-09 10:04:35,037] [INFO] [ATTENDANCE] Unknown (123220023) -> Phòng F404: Đúng giờ
+[2026-10-09 10:09:13,010] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:09:21,966] [INFO] WebSocket client kết nối. Tổng kết nối: 1
+[2026-10-09 10:10:42,920] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:10:47,474] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:16:34,897] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:19:39,728] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:20:11,598] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:20:33,693] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:20:52,953] [INFO] [SCHEDULE] Đã tạo lịch môn Hòa cho lớp 22ES phòng F404
+[2026-10-09 10:21:25,269] [INFO] [ENROLL] Đăng ký thành công Nguyễn Phi Song Toàn (Tin cậy: 100.0%)
+[2026-10-09 10:21:42,771] [INFO] [DEVICE] Đã đăng ký camera CAM_F404 phòng F404
+[2026-10-09 10:22:03,356] [INFO] [ATTENDANCE] Unknown (123220023) -> Phòng F404: Không thuộc lớp (Lớp Unknown)
+[2026-10-09 10:22:13,365] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Đúng giờ
+[2026-10-09 10:27:48,978] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:27:49,651] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:40:28,765] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:40:29,456] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:46:35,697] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:46:36,068] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:46:56,452] [INFO] Admin đăng nhập thành công.
+[2026-10-09 10:54:11,377] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 10:54:18,293] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 10:54:23,187] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 11:14:23,000] [INFO] Admin đăng nhập thành công.
+[2026-10-09 11:25:49,300] [INFO] [DEVICE] Đã đăng ký camera CAM_F404 phòng F404
+[2026-10-09 11:35:36,076] [WARNING] Từ chối thiết bị với token: DEV_51579817de7d789d85413e33b9392f9e
+[2026-10-09 11:35:53,891] [INFO] [ATTENDANCE] Nguyễn Phi Song Toàn (123220075) -> Phòng F404: Đúng giờ
+[2026-10-09 12:03:18,869] [INFO] Admin đăng nhập thành công.
+[2026-10-09 12:07:30,959] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:07:30,992] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:07:32,304] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:07:39,752] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:07:40,022] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:07:45,387] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:07:45,821] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:08:30,196] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:08:35,187] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:08:49,558] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:08:49,891] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:09:00,348] [INFO] Giảng viên (admin) đăng nhập thành công.
+[2026-10-09 12:09:43,105] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:09:43,391] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:10:48,803] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:10:49,033] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:11:03,672] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:11:03,907] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:19:25,178] [INFO] [ATTENDANCE] Unknown (1232200795) -> Phòng F404: Không thuộc lớp (Lớp Unknown)
+[2026-10-09 12:25:31,737] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:25:32,466] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:26:02,224] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 12:26:02,480] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 12:37:27,014] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
