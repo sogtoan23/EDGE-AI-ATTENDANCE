@@ -106,3 +106,84 @@
 [2026-10-09 12:26:02,224] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
 [2026-10-09 12:26:02,480] [INFO] WebSocket client kết nối. Tổng: 1
 [2026-10-09 12:37:27,014] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:13:07,861] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:13:07,902] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:13:08,717] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:13:32,969] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:13:47,802] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:13:49,844] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:13:50,157] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:14:21,745] [INFO] [DEVICE] Đã đăng ký camera CAM_F404 phòng F404
+[2026-10-09 13:16:02,755] [INFO] [ATTENDANCE] 1 (1) -> Phòng F404: Không thuộc lớp (Lớp 12)
+[2026-10-09 13:24:04,936] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:24:10,398] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:39:19,819] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:39:20,522] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:39:48,045] [ERROR] [EXPORT ERROR] 'latin-1' codec can't encode character '\u0300' in position 35: ordinal not in range(256)
+[2026-10-09 13:40:43,497] [INFO] [ATTENDANCE] 1 (1213) -> Phòng F404: Đúng giờ
+[2026-10-09 13:40:54,308] [ERROR] [EXPORT ERROR] 'latin-1' codec can't encode character '\u0300' in position 35: ordinal not in range(256)
+[2026-10-09 13:42:44,924] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:42:51,074] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:42:53,619] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-09 13:42:54,283] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-09 13:43:33,790] [INFO] [ATTENDANCE] 1 (1213) -> Phòng F404: Đúng giờ
+[2026-10-09 13:45:22,320] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 10:44:49,912] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 10:45:03,788] [INFO] Giảng viên (admin) đăng nhập thành công.
+[2026-10-10 10:47:51,493] [INFO] [ATTENDANCE] 1 (1213) -> Phòng F403: Ngoài giờ học
+[2026-10-10 10:52:53,154] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 10:53:02,551] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 10:54:38,873] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 10:54:48,286] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 10:54:48,344] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 10:54:49,401] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:02:07,424] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:02:16,040] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:09:09,846] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt thật hợp lệ trong khung hình!
+[2026-10-10 11:09:33,883] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt thật hợp lệ trong khung hình!
+[2026-10-10 11:12:24,018] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:12:24,801] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:12:44,250] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt thật hợp lệ trong khung hình!
+[2026-10-10 11:14:08,555] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:15:18,493] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:15:18,608] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:15:19,308] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:15:23,765] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:15:24,106] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:15:40,794] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt hợp lệ!
+[2026-10-10 11:16:15,430] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:16:19,724] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:19:14,401] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:19:14,660] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:19:28,641] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt thật hợp lệ trong khung hình!
+[2026-10-10 11:21:12,151] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:21:19,344] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:21:24,447] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:21:30,810] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:21:30,854] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:21:31,154] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:21:49,570] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt hợp lệ!
+[2026-10-10 11:28:47,523] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:28:56,076] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:29:12,674] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt hợp lệ!
+[2026-10-10 11:31:40,038] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:31:45,734] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:31:47,145] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:31:48,376] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:32:04,412] [WARNING] [EKYC BLOCKED] Góc ảnh số 1: Không tìm thấy khuôn mặt hợp lệ!
+[2026-10-10 11:34:08,019] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:34:16,862] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:34:21,066] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:34:25,844] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:34:25,885] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:34:26,692] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:34:42,774] [WARNING] [EKYC BLOCKED] Cảnh báo giả mạo! Góc ảnh 1 bị từ chối do phát hiện màn hình điện thoại / ảnh chụp lại (Độ tin cậy mặt thật: 0.0%).
+[2026-10-10 11:48:13,833] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:48:20,681] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:48:21,025] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 11:48:21,984] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 11:49:31,464] [WARNING] [EKYC BLOCKED] Cảnh báo giả mạo! Góc ảnh 1 bị từ chối do phát hiện màn hình thiết bị / ảnh in (Độ tin cậy mặt thật: 0.0%).
+[2026-10-10 11:54:20,709] [WARNING] [EKYC BLOCKED] Cảnh báo giả mạo! Góc ảnh 1 bị từ chối do phát hiện màn hình thiết bị / ảnh in (Độ tin cậy mặt thật: 0.0%).
+[2026-10-10 12:04:44,037] [INFO] WebSocket client ngắt kết nối. Còn lại: 0
+[2026-10-10 12:04:47,094] [INFO] WebSocket client kết nối. Tổng: 1
+[2026-10-10 12:05:12,658] [INFO] WebSocket client ngắt kết nối. Còn lại: 0

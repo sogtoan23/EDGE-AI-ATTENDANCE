@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import onnxruntime as ort
@@ -9,7 +10,11 @@ class FullPipelineFaceExtractor:
         spoof_model_path="models/minifasnet.onnx",
         rec_model_path="models/w600k_mbf.onnx"
     ):
-        # Kiểm tra phần cứng: Ưu tiên CUDAExecutionProvider nếu có GPU NVIDIA
+        for p in [det_model_path, spoof_model_path, rec_model_path]:
+            if not os.path.exists(p):
+                raise FileNotFoundError(f"Không tìm thấy file model: {p}")
+
+        # Kiểm tra phần cứng: Ưu tiên GPU nếu có, mặc định CPU
         available_providers = ort.get_available_providers()
         preferred_providers = []
         if 'CUDAExecutionProvider' in available_providers:
@@ -18,17 +23,21 @@ class FullPipelineFaceExtractor:
             preferred_providers.append('TensorrtExecutionProvider')
         preferred_providers.append('CPUExecutionProvider')
 
+        # 1. Model Detection (det_500m.onnx)
         self.det_session = ort.InferenceSession(det_model_path, providers=preferred_providers)
         self.det_input_name = self.det_session.get_inputs()[0].name
         
+        # 2. Model Anti-Spoofing / Liveness (minifasnet.onnx)
         self.spoof_session = ort.InferenceSession(spoof_model_path, providers=preferred_providers)
         self.spoof_input_name = self.spoof_session.get_inputs()[0].name
         self.spoof_output_name = self.spoof_session.get_outputs()[0].name
 
+        # 3. Model Feature Extraction / ArcFace (w600k_mbf.onnx)
         self.rec_session = ort.InferenceSession(rec_model_path, providers=preferred_providers)
         self.rec_input_name = self.rec_session.get_inputs()[0].name
         self.rec_output_name = self.rec_session.get_outputs()[0].name
 
+        # Mẫu landmark 5 điểm chuẩn hóa ArcFace 112x112
         self.ref_landmarks = np.array([
             [38.2946, 51.6963],
             [73.5318, 51.5014],
@@ -37,6 +46,9 @@ class FullPipelineFaceExtractor:
             [70.7299, 92.2041]
         ], dtype=np.float32)
 
+    # -------------------------------------------------------------
+    # MODEL 1: DETECT KHUÔN MẶT & LANDMARKS 5 ĐIỂM (SCRFD)
+    # -------------------------------------------------------------
     def detect_face(self, img, conf_thresh=0.5):
         h, w = img.shape[:2]
         input_size = (640, 640)
@@ -110,17 +122,16 @@ class FullPipelineFaceExtractor:
         best_idx = np.argmax(areas)
         return bboxes[best_idx], kpss[best_idx], scores[best_idx]
 
-    def align_face(self, img, landmarks):
-        M, _ = cv2.estimateAffinePartial2D(landmarks, self.ref_landmarks)
-        if M is None:
-            return cv2.resize(img, (112, 112))
-        return cv2.warpAffine(img, M, (112, 112), borderValue=0.0)
-
+    # -------------------------------------------------------------
+    # MODEL 2: CHỐNG GIẢ MẠO / LIVENESS (MINIFASNET)
+    # Paper quy ước: [Index 0: Paper, Index 1: Real, Index 2: Screen]
+    # -------------------------------------------------------------
     def check_liveness(self, img, bbox):
         x1, y1, x2, y2 = bbox.astype(int)
         w, h = x2 - x1, y2 - y1
         cx, cy = x1 + w // 2, y1 + h // 2
         
+        # Scale chuẩn 2.7x của Silent-Face-Anti-Spoofing
         scale = 2.7
         new_w, new_h = int(w * scale), int(h * scale)
         nx1 = max(0, cx - new_w // 2)
@@ -129,7 +140,7 @@ class FullPipelineFaceExtractor:
         ny2 = min(img.shape[0], cy + new_h // 2)
         
         crop = img[ny1:ny2, nx1:nx2]
-        if crop.size == 0:
+        if crop.size == 0 or crop.shape[0] < 30 or crop.shape[1] < 30:
             return 0.0
 
         crop = cv2.resize(crop, (80, 80)).astype(np.float32)
@@ -137,10 +148,29 @@ class FullPipelineFaceExtractor:
         crop = np.expand_dims(crop, axis=0)
 
         outputs = self.spoof_session.run([self.spoof_output_name], {self.spoof_input_name: crop})[0]
+        
+        # Hàm xác suất Softmax
         exp_vals = np.exp(outputs[0] - np.max(outputs[0]))
         probs = exp_vals / np.sum(exp_vals)
-        return float(probs[1])
 
+        # Index 1 luôn là REAL FACE
+        real_score = float(probs[1])
+
+        print(f"[DEBUG LIVENESS] Probs: [Paper={probs[0]:.4f}, Real={probs[1]:.4f}, Screen={probs[2]:.4f}] | Real Score: {real_score:.4f}")
+        return real_score
+
+    # -------------------------------------------------------------
+    # ALIGN KHUÔN MẶT THEO 5 ĐIỂM LANDMARKS
+    # -------------------------------------------------------------
+    def align_face(self, img, landmarks):
+        M, _ = cv2.estimateAffinePartial2D(landmarks, self.ref_landmarks)
+        if M is None:
+            return cv2.resize(img, (112, 112))
+        return cv2.warpAffine(img, M, (112, 112), borderValue=0.0)
+
+    # -------------------------------------------------------------
+    # MODEL 3: TRÍCH XUẤT ĐẶC TRƯNG VECTOR 512-D (ARCFACE / MBF)
+    # -------------------------------------------------------------
     def extract_features(self, aligned_face):
         face_img = cv2.cvtColor(aligned_face, cv2.COLOR_BGR2RGB)
         face_img = (face_img.astype(np.float32) - 127.5) / 128.0
@@ -153,25 +183,35 @@ class FullPipelineFaceExtractor:
             embedding = embedding / norm
         return embedding
 
-    def process_multiple_photos(self, photos_bytes: list, liveness_thresh=0.65):
+    # -------------------------------------------------------------
+    # PIPELINE HOÀN CHỈNH BẮT BUỘC 3 MODEL TUẦN TỰ
+    # -------------------------------------------------------------
+    def process_multiple_photos(self, photos_bytes: list, liveness_thresh=0.70):
         embeddings = []
         liveness_scores = []
 
-        for p_bytes in photos_bytes:
+        for idx, p_bytes in enumerate(photos_bytes):
             nparr = np.frombuffer(p_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             if img is None:
-                continue
+                raise ValueError(f"Góc ảnh {idx + 1}: Dữ liệu ảnh không hợp lệ.")
 
+            # BƯỚC 1: Model 1 phát hiện khuôn mặt
             bbox, landmarks, _ = self.detect_face(img)
             if bbox is None:
-                continue
+                raise ValueError(f"Góc ảnh {idx + 1}: Không phát hiện được khuôn mặt rõ ràng trong khung hình.")
 
+            # BƯỚC 2: Model 2 thẩm định mặt thật hay giả
             liveness = self.check_liveness(img, bbox)
             if liveness < liveness_thresh:
-                raise ValueError(f"Phát hiện ảnh không phải người thật (Tin cậy: {liveness*100:.1f}%).")
+                # Dừng toàn bộ chu trình ngay lập tức, không gọi sang Model 3
+                raise ValueError(
+                    f"Cảnh báo giả mạo! Góc ảnh {idx + 1} bị từ chối do phát hiện màn hình thiết bị / ảnh in (Độ tin cậy mặt thật: {liveness*100:.1f}%)."
+                )
 
             liveness_scores.append(liveness)
+
+            # BƯỚC 3: Chỉ khi là mặt thật mới align và trích xuất vector 512-D
             aligned = self.align_face(img, landmarks)
             emb = self.extract_features(aligned)
             embeddings.append(emb)
@@ -180,6 +220,9 @@ class FullPipelineFaceExtractor:
             raise ValueError("Không phát hiện khuôn mặt hợp lệ trong các góc chụp.")
 
         mean_embedding = np.mean(embeddings, axis=0)
-        mean_embedding = mean_embedding / np.linalg.norm(mean_embedding)
+        norm = np.linalg.norm(mean_embedding)
+        if norm > 0:
+            mean_embedding = mean_embedding / norm
+
         avg_liveness = sum(liveness_scores) / len(liveness_scores)
         return mean_embedding.tolist(), avg_liveness

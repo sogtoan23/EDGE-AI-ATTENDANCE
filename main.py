@@ -30,7 +30,7 @@ from security import (
 )
 
 # -------------------------------------------------------------
-# 1. CẤU HÌNH LOGGING & THƯ MỤC
+# 1. CẤU HÌNH LOGGING & THƯ MỤC HỆ THỐNG
 # -------------------------------------------------------------
 os.makedirs("logs", exist_ok=True)
 os.makedirs("snapshots", exist_ok=True)
@@ -44,7 +44,7 @@ logger.addHandler(file_handler)
 logger.addHandler(logging.StreamHandler())
 
 # -------------------------------------------------------------
-# 2. KHỞI TẠO FASTAPI APP & BACKGROUND TASK
+# 2. KHỞI TẠO ỨNG DỤNG FASTAPI & TÁC VỤ NGẦM
 # -------------------------------------------------------------
 app = FastAPI(title="Face Attendance Enterprise Gateway")
 
@@ -62,7 +62,7 @@ app.mount("/snapshots", StaticFiles(directory="snapshots"), name="snapshots")
 extractor = FullPipelineFaceExtractor()
 
 async def cleanup_old_snapshots_task():
-    """Tác vụ ngầm dọn dẹp ảnh snapshot cũ hơn 30 ngày."""
+    """Tác vụ ngầm dọn dẹp các bức ảnh snapshot cũ hơn 30 ngày."""
     while True:
         try:
             now = datetime.now()
@@ -109,7 +109,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # -------------------------------------------------------------
-# 3. XÁC THỰC THIẾT BỊ CAMERA (X-Device-Token)
+# 3. XÁC THỰC CAMERA DEVICE (X-Device-Token)
 # -------------------------------------------------------------
 def get_current_device(
     x_device_token: str = Header(..., alias="X-Device-Token"),
@@ -121,7 +121,7 @@ def get_current_device(
     ).first()
 
     if not device:
-        logger.warning(f"Từ chối thiết bị với token: {x_device_token}")
+        logger.warning(f"Từ chối thiết bị camera với token: {x_device_token}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Thiết bị camera không hợp lệ hoặc đã bị vô hiệu hóa!"
@@ -129,7 +129,7 @@ def get_current_device(
     return device
 
 # -------------------------------------------------------------
-# 4. AUTHENTICATION (GIẢNG VIÊN & SINH VIÊN)
+# 4. XÁC THỰC NGƯỜI DÙNG & TRA CỨU ĐIỂM DANH
 # -------------------------------------------------------------
 class LoginPayload(BaseModel):
     username: str
@@ -177,7 +177,7 @@ def lookup_student_attendance(
     auth: HTTPAuthorizationCredentials = Depends(security_bearer),
     db: Session = Depends(get_db)
 ):
-    """Tra cứu điểm danh: Sinh viên xem chính mình, Giảng viên xem bất kỳ."""
+    """Tra cứu điểm danh: Sinh viên xem chính mình, Giảng viên tra cứu sinh viên bất kỳ."""
     if not auth:
         raise HTTPException(status_code=401, detail="Yêu cầu đăng nhập để tra cứu dữ liệu!")
     payload = decode_token(auth.credentials)
@@ -211,7 +211,7 @@ def lookup_student_attendance(
     }
 
 # -------------------------------------------------------------
-# 5. TIẾP NHẬN ĐIỂM DANH (ĐỐI SOÁT LỚP HỌC & ĐI SỚM)
+# 5. TIẾP NHẬN ĐIỂM DANH TỪ CAMERA EDGE
 # -------------------------------------------------------------
 class EdgeAttendancePayload(BaseModel):
     student_id: str
@@ -224,7 +224,7 @@ def process_single_attendance(payload: EdgeAttendancePayload, current_device: De
     cur_time = check_time.time()
     cur_weekday = check_time.weekday()
     cur_minutes = cur_time.hour * 60 + cur_time.minute
-    
+
     target_room = current_device.room_name
     device_id = current_device.device_id
     target_sid = payload.student_id.strip().upper()
@@ -259,7 +259,7 @@ def process_single_attendance(payload: EdgeAttendancePayload, current_device: De
                 status_str = "Đi trễ"
             break
 
-    # Debounce 10 phút chống gửi lặp
+    # Debounce 10 phút chống gửi trùng lặp dữ liệu[cite: 1]
     cooldown_limit = check_time - timedelta(minutes=10)
     recent_log = db.query(AttendanceLog).filter(
         AttendanceLog.student_id == target_sid,
@@ -287,13 +287,13 @@ def process_single_attendance(payload: EdgeAttendancePayload, current_device: De
                 if w > 480:
                     new_h = int(h * (480 / w))
                     img = cv2.resize(img, (480, new_h))
-                
+
                 filename = f"snap_{target_sid}_{int(check_time.timestamp())}.jpg"
                 file_path = os.path.join("snapshots", filename)
                 cv2.imwrite(file_path, img, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
                 snapshot_filename = f"/snapshots/{filename}"
         except Exception as e:
-            logger.error(f"Lỗi nén snapshot: {e}")
+            logger.error(f"Lỗi nén ảnh snapshot: {e}")
 
     log = AttendanceLog(
         device_id=device_id,
@@ -359,7 +359,7 @@ async def receive_bulk_attendance(
     return {"status": "success", "room": current_device.room_name, "inserted": processed, "ignored": ignored}
 
 # -------------------------------------------------------------
-# 6. ĐỒNG BỘ VECTOR CHO EDGE (SYNC-ALL)
+# 6. ĐỒNG BỘ VECTOR CHO CAMERA EDGE
 # -------------------------------------------------------------
 @app.get("/api/v1/students/sync-all")
 def sync_all(
@@ -369,6 +369,8 @@ def sync_all(
     students = db.query(Student).all()
     results = []
     for s in students:
+        if not s.embedding_json:
+            continue
         try:
             raw_vec = json.loads(decrypt_vector_string(s.embedding_json))
             results.append({
@@ -435,7 +437,7 @@ def delete_device(device_id: str, db: Session = Depends(get_db)):
     return {"status": "success", "message": f"Đã xóa thiết bị {device_id}"}
 
 # -------------------------------------------------------------
-# 8. QUẢN LÝ HỒ SƠ SINH VIÊN EKYC
+# 8. QUẢN LÝ EKYC (CHẶN MẶT GIẢ/ĐIỆN THOẠI & LƯU VĨNH VIỄN)
 # -------------------------------------------------------------
 @app.get("/api/v1/students/check/{student_id}")
 def check_student_exists(student_id: str, db: Session = Depends(get_db)):
@@ -495,19 +497,25 @@ async def enroll_multi_faces(
     existing_student = db.query(Student).filter(Student.student_id == student_id).first()
 
     if existing_student and not overwrite:
-        raise HTTPException(status_code=409, detail=f"Mã sinh viên {student_id} đã tồn tại!")
+        raise HTTPException(status_code=409, detail=f"Mã sinh viên {student_id} đã tồn tại trong hệ thống!")
 
     if len(photos) < 2:
-        raise HTTPException(status_code=400, detail="Cần tối thiểu 2 góc mặt để trích xuất chuẩn.")
+        raise HTTPException(status_code=400, detail="Cần tối thiểu 2 góc ảnh để trích xuất vector chuẩn xác.")
 
     photos_bytes = [await p.read() for p in photos]
 
+    # Duyệt tuần tự qua đủ 3 model AI
     try:
         embedding, liveness = extractor.process_multiple_photos(photos_bytes)
+    except ValueError as ve:
+        # Nếu model 1 (không thấy mặt) hoặc model 2 (phát hiện màn hình điện thoại) -> Chặn đứng quy trình ngay
+        logger.warning(f"[EKYC BLOCKED] {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        logger.error(f"Lỗi trích xuất AI: {e}")
+        logger.error(f"[AI ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi AI trích xuất vector: {str(e)}")
 
+    # Mã hóa vector 512-D với AES-256
     encrypted_vector = encrypt_vector_string(json.dumps(embedding))
 
     if existing_student:
@@ -526,9 +534,11 @@ async def enroll_multi_faces(
         )
         db.add(new_student)
         action_type = "ADD_FACE"
-        msg = f"Đăng ký thành công {full_name} (Tin cậy: {liveness*100:.1f}%)"
+        msg = f"Đăng ký thành công {full_name} (Độ tin cậy người thật: {liveness*100:.1f}%)"
 
     db.commit()
+
+    # Đồng bộ realtime xuống các Camera Edge
     await manager.broadcast({
         "event": "SYNC_LOCAL_CACHE",
         "action": action_type,
@@ -564,7 +574,7 @@ async def delete_student(payload: DeleteStudentPayload, db: Session = Depends(ge
     return {"status": "success", "message": f"Đã xóa thành công sinh viên {full_name} ({sid})"}
 
 # -------------------------------------------------------------
-# 9. CRUD LỊCH HỌC, TRA CỨU MA TRẬN & XUẤT EXCEL CHỐNG LỖI LATIN-1
+# 9. LỊCH HỌC, TRA CỨU MA TRẬN & XUẤT EXCEL CHỐNG LỖI LATIN-1
 # -------------------------------------------------------------
 @app.get("/api/v1/schedules/list")
 def get_schedules(db: Session = Depends(get_db)):
@@ -675,7 +685,6 @@ def preview_attendance_by_class(
     end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """API xem trước ma trận điểm danh của lớp trước khi xuất Excel."""
     class_name = class_name.strip()
     subject_name = subject_name.strip()
 
@@ -744,7 +753,6 @@ def export_attendance_by_class(
     end_date: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Xuất file Excel ma trận điểm danh chi tiết kèm giải pháp chống lỗi Latin-1 chuẩn RFC 5987."""
     try:
         class_name = class_name.strip()
         subject_name = subject_name.strip()
@@ -804,17 +812,16 @@ def export_attendance_by_class(
         df = pd.DataFrame(rows)
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            # Tên sheet Excel an toàn
             safe_sheet = f"{class_name[:10]}_{subject_name[:10]}"
             df.to_excel(writer, index=False, sheet_name=safe_sheet)
 
         output.seek(0)
-        
-        # Xử lý tên file mã hóa chuẩn RFC 5987 để hỗ trợ tiếng Việt không lỗi latin-1
+
+        # Chuẩn RFC 5987 chống lỗi 'latin-1' codec khi tên file có dấu tiếng Việt
         clean_class = "".join(c for c in class_name if c.isalnum() or c in (' ', '_', '-')).strip()
         clean_subj = "".join(c for c in subject_name if c.isalnum() or c in (' ', '_', '-')).strip()
         date_str = datetime.now().strftime('%Y%m%d')
-        
+
         filename_utf8 = f"DiemDanh_{clean_class}_{clean_subj}_{date_str}.xlsx"
         encoded_filename = quote(filename_utf8)
         fallback_filename = f"DiemDanh_Lop_{date_str}.xlsx"
