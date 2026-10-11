@@ -89,7 +89,7 @@ class Schedule(Base):
 
 
 def init_db_with_migrations():
-    """Tự động kiểm tra và thêm các cột mới nếu bảng cơ sở dữ liệu cũ chưa có"""
+    """Tự động kiểm tra và đồng bộ các cột mới cho PostgreSQL / SQLite"""
     Base.metadata.create_all(bind=engine)
 
     inspector = inspect(engine)
@@ -98,20 +98,30 @@ def init_db_with_migrations():
     # 1. Đồng bộ bảng attendance_logs
     if "attendance_logs" in table_names:
         cols_log = [c["name"] for c in inspector.get_columns("attendance_logs")]
-        if "schedule_id" not in cols_log:
-            with engine.connect() as conn:
+        with engine.connect() as conn:
+            # Sửa lỗi: psycopg2.errors.UndefinedColumn: column attendance_logs.punch_time does not exist
+            if "punch_time" not in cols_log:
+                if "timestamp" in cols_log:
+                    conn.execute(text("ALTER TABLE attendance_logs RENAME COLUMN timestamp TO punch_time;"))
+                    print("✅ [DATABASE] Đã đổi tên cột timestamp -> punch_time")
+                else:
+                    conn.execute(text("ALTER TABLE attendance_logs ADD COLUMN punch_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+                    print("✅ [DATABASE] Đã thêm cột punch_time vào attendance_logs")
+
+            if "schedule_id" not in cols_log:
                 conn.execute(text("ALTER TABLE attendance_logs ADD COLUMN schedule_id INTEGER;"))
-                conn.commit()
-            print("✅ [DATABASE] Đã thêm cột schedule_id vào attendance_logs")
+                print("✅ [DATABASE] Đã thêm cột schedule_id vào attendance_logs")
+
+            conn.commit()
 
     # 2. Đồng bộ bảng schedules
     if "schedules" in table_names:
         cols_sch = [c["name"] for c in inspector.get_columns("schedules")]
         with engine.connect() as conn:
             if "start_date" not in cols_sch:
-                conn.execute(text("ALTER TABLE schedules ADD COLUMN start_date TEXT;"))
+                conn.execute(text("ALTER TABLE schedules ADD COLUMN start_date VARCHAR(10);"))
             if "end_date" not in cols_sch:
-                conn.execute(text("ALTER TABLE schedules ADD COLUMN end_date TEXT;"))
+                conn.execute(text("ALTER TABLE schedules ADD COLUMN end_date VARCHAR(10);"))
             conn.commit()
         print("✅ [DATABASE] Đồng bộ cột start_date, end_date cho bảng schedules thành công")
 
