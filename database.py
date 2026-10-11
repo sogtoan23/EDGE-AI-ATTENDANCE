@@ -15,6 +15,13 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./attendance.db")
 
+# Render thường cung cấp DATABASE_URL bắt đầu bằng "postgres://" hoặc "postgresql://"
+# Cần chuẩn hóa sang "postgresql+psycopg2://" để ép SQLAlchemy dùng driver psycopg2-binary đã cài đặt
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL,
@@ -82,13 +89,13 @@ class Schedule(Base):
 
 
 def init_db_with_migrations():
-    """Tự động bổ sung các cột mới nếu bảng SQLite cũ đang thiếu"""
+    """Tự động kiểm tra và thêm các cột mới nếu bảng cơ sở dữ liệu cũ chưa có"""
     Base.metadata.create_all(bind=engine)
 
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
     
-    # 1. Kiểm tra bảng attendance_logs
+    # 1. Đồng bộ bảng attendance_logs
     if "attendance_logs" in table_names:
         cols_log = [c["name"] for c in inspector.get_columns("attendance_logs")]
         if "schedule_id" not in cols_log:
@@ -97,7 +104,7 @@ def init_db_with_migrations():
                 conn.commit()
             print("✅ [DATABASE] Đã thêm cột schedule_id vào attendance_logs")
 
-    # 2. Kiểm tra bảng schedules
+    # 2. Đồng bộ bảng schedules
     if "schedules" in table_names:
         cols_sch = [c["name"] for c in inspector.get_columns("schedules")]
         with engine.connect() as conn:
