@@ -28,7 +28,7 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col font-sans overflow-x-hidden">
 
-    <!-- HEADER NAVIGATION (GỘP ĐĂNG KÝ VÀO QUẢN LÝ SINH VIÊN, BỎ GIÁM SÁT THỪA) -->
+    <!-- HEADER NAVIGATION (GỘP ĐĂNG KÝ VÀO QUẢN LÝ SINH VIÊN) -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm w-full">
         <div class="w-full px-6 flex justify-between items-center h-16 gap-4">
             
@@ -240,7 +240,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: QUẢN LÝ SINH VIÊN (GỘP DANH SÁCH & ĐĂNG KÝ EKYC) -->
+        <!-- TAB 3: QUẢN LÝ SINH VIÊN (GỘP DANH SÁCH & NÚT ĐĂNG KÝ MỚI) -->
         <section id="view-students" class="hidden space-y-6">
             
             <!-- PHẦN 1: BẢNG DANH SÁCH SINH VIÊN -->
@@ -254,6 +254,7 @@
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- NÚT ĐĂNG KÝ SINH VIÊN MỚI NỔI BẬT -->
                         <button onclick="showEnrollSubView()" class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
                             <span>➕</span> Đăng Ký Sinh Viên Mới
                         </button>
@@ -511,7 +512,7 @@
 
     </main>
 
-    <!-- MODAL SỔ ĐIỂM DANH THEO LỚP & CA HỌC (TÍCH HỢP TẢI EXCEL & BẢO VỆ CHỐNG LỖI 500) -->
+    <!-- MODAL SỔ ĐIỂM DANH THEO LỚP & CA HỌC (TÍCH HỢP NÚT TẢI EXCEL) -->
     <div id="class-attendance-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-5xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] relative z-50">
             <div class="p-5 border-b border-slate-100 flex items-center justify-between">
@@ -1136,32 +1137,21 @@
                 const res = await fetch(url, {
                     headers: token ? { "Authorization": `Bearer ${token}` } : {}
                 });
-
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    let msg = "Lỗi nạp dữ liệu";
-                    try {
-                        const errorJson = JSON.parse(errorText);
-                        msg = errorJson.detail || msg;
-                    } catch (_) {
-                        msg = `Lỗi máy chủ (${res.status}): Vui lòng kiểm tra log server`;
-                    }
-                    document.getElementById("modal-loading-indicator").classList.add("hidden");
-                    document.getElementById("modal-table-container").classList.remove("hidden");
-                    document.getElementById("modal-table-body").innerHTML = `<tr><td class="p-6 text-center text-rose-500 font-bold">${msg}</td></tr>`;
-                    return;
-                }
-
                 const data = await res.json();
 
                 document.getElementById("modal-loading-indicator").classList.add("hidden");
                 document.getElementById("modal-table-container").classList.remove("hidden");
 
+                if (!res.ok) {
+                    document.getElementById("modal-table-body").innerHTML = `<tr><td class="p-4 text-center text-rose-500 font-bold">${data.detail || 'Không tải được dữ liệu'}</td></tr>`;
+                    return;
+                }
+
                 currentAttendanceExportData = data;
 
                 const thead = document.getElementById("modal-table-head");
                 let headHtml = `<tr><th class="p-2.5 font-bold">STT</th><th class="p-2.5 font-bold">Mã SV</th><th class="p-2.5 font-bold">Họ và Tên</th>`;
-                (data.dates || []).forEach(col => {
+                data.dates.forEach(col => {
                     headHtml += `<th class="p-2.5 font-bold text-center border-l whitespace-nowrap">${col}</th>`;
                 });
                 headHtml += `<th class="p-2.5 font-bold text-center bg-emerald-50 text-emerald-800 border-l whitespace-nowrap">Đúng giờ</th>
@@ -1171,12 +1161,6 @@
 
                 const tbody = document.getElementById("modal-table-body");
                 tbody.innerHTML = '';
-
-                if (!data.records || data.records.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${(data.dates?.length || 0) + 6}" class="p-6 text-center text-slate-400">Chưa có sinh viên nào trong lớp này</td></tr>`;
-                    return;
-                }
-
                 data.records.forEach(r => {
                     let rowHtml = `
                         <tr class="hover:bg-slate-50 border-b">
@@ -1185,7 +1169,7 @@
                             <td class="p-2.5 font-semibold text-slate-800">${r.full_name}</td>
                     `;
 
-                    (data.dates || []).forEach(col => {
+                    data.dates.forEach(col => {
                         const status = r.dates[col] || 'Vắng';
                         let badgeStyle = "text-slate-400";
                         if (status === "Đúng giờ") badgeStyle = "text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold";
@@ -1204,9 +1188,7 @@
                 });
 
             } catch(err) {
-                document.getElementById("modal-loading-indicator").classList.add("hidden");
-                document.getElementById("modal-table-container").classList.remove("hidden");
-                document.getElementById("modal-table-body").innerHTML = `<tr><td class="p-6 text-center text-rose-500 font-bold">Lỗi kết nối: ${err.message}</td></tr>`;
+                document.getElementById("modal-loading-indicator").textContent = "Lỗi kết nối: " + err.message;
             }
         }
 
@@ -1218,7 +1200,7 @@
 
             const data = currentAttendanceExportData;
             const headers = ["STT", "Mã SV", "Họ và Tên", "Lớp"];
-            (data.dates || []).forEach(d => headers.push(d));
+            data.dates.forEach(d => headers.push(d));
             headers.push("Đúng Giờ (Lần)", "Đi Trễ (Lần)", "Vắng (Lần)");
 
             const rows = [];
@@ -1229,7 +1211,7 @@
                     r.full_name,
                     r.class_name
                 ];
-                (data.dates || []).forEach(d => {
+                data.dates.forEach(d => {
                     row.push(r.dates[d] || "Vắng");
                 });
                 row.push(r.summary.dung, r.summary.tre, r.summary.vang);
