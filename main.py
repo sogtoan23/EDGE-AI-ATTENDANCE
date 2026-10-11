@@ -50,7 +50,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Edge AI Attendance Gateway", 
-    version="6.5.0"
+    version="6.3.0"
 )
 
 app.add_middleware(
@@ -65,9 +65,9 @@ extractor = FullPipelineFaceExtractor()
 DAY_NAMES = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
 
 
-# ==========================================================================
-# 1. WEBSOCKET REALTIME MANAGER
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 1. QUẢN LÝ WEBSOCKET SERVER - EDGE & WEB DASHBOARD
+# --------------------------------------------------------------------------
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -122,9 +122,9 @@ async def broadcast_edge_delete(student_id: str):
     })
 
 
-# ==========================================================================
-# 2. XÁC THỰC NGƯỜI DÙNG (AUTH)
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 2. XÁC THỰC NGƯỜI DÙNG (AUTHENTICATION)
+# --------------------------------------------------------------------------
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -138,7 +138,7 @@ def login_teacher(req: LoginRequest):
 
 @app.post("/api/v1/auth/student-login")
 def login_student(req: LoginRequest, db: Session = Depends(get_db)):
-    student = db.query(Student).filter(Student.student_id == req.username.strip()).first()
+    student = db.query(Student).filter(Student.student_id == req.username).first()
     if not student:
         raise HTTPException(status_code=400, detail="Mã sinh viên không tồn tại!")
     if student.password_hash and not verify_password(req.password, student.password_hash):
@@ -154,12 +154,12 @@ def login_student(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-# ==========================================================================
-# 3. ĐĂNG KÝ SINH VIÊN (EKYC 3 GÓC)
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 3. ĐĂNG KÝ eKYC 3 GÓC
+# --------------------------------------------------------------------------
 @app.get("/api/v1/students/check/{student_id}")
 def check_student_exists(student_id: str, db: Session = Depends(get_db)):
-    s = db.query(Student).filter(Student.student_id == student_id.strip()).first()
+    s = db.query(Student).filter(Student.student_id == student_id).first()
     return {"exists": s is not None}
 
 @app.post("/api/v1/students/enroll-multi")
@@ -174,10 +174,9 @@ async def enroll_multi_photos(
     if len(photos) < 3:
         raise HTTPException(status_code=400, detail="Cần cung cấp đủ 3 ảnh quét khuôn mặt!")
 
-    sid_clean = student_id.strip().upper()
-    existing = db.query(Student).filter(Student.student_id == sid_clean).first()
+    existing = db.query(Student).filter(Student.student_id == student_id).first()
     if existing and not overwrite:
-        raise HTTPException(status_code=400, detail=f"Mã sinh viên {sid_clean} đã tồn tại!")
+        raise HTTPException(status_code=400, detail=f"Mã sinh viên {student_id} đã tồn tại!")
 
     collected_embeddings = []
     for idx, photo in enumerate(photos, 1):
@@ -216,22 +215,22 @@ async def enroll_multi_photos(
         existing.embedding_json = enc_vector
     else:
         new_stu = Student(
-            student_id=sid_clean,
+            student_id=student_id.strip(),
             full_name=full_name.strip(),
             class_name=clean_class,
-            password_hash=hash_password(sid_clean),
+            password_hash=hash_password(student_id.strip()),
             embedding_json=enc_vector
         )
         db.add(new_stu)
 
     db.commit()
-    await broadcast_edge_upsert(sid_clean, avg_vec.tolist())
+    await broadcast_edge_upsert(student_id.strip(), avg_vec.tolist())
     return {"status": "success", "message": f"Đã lưu sinh viên {full_name} và đồng bộ vector qua WebSocket!"}
 
 
-# ==========================================================================
-# 4. QUẢN LÝ SINH VIÊN
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 4. QUẢN LÝ SINH VIÊN & XÓA
+# --------------------------------------------------------------------------
 @app.get("/api/v1/students/list")
 def list_students(
     class_name: Optional[str] = None,
@@ -279,7 +278,7 @@ async def delete_student_secured(req: DeleteStudentRequest, db: Session = Depend
     if not verify_password(req.password, ADMIN_PASSWORD_HASH):
         raise HTTPException(status_code=400, detail="Mật khẩu quản trị không chính xác!")
 
-    stu = db.query(Student).filter(Student.student_id == req.student_id.strip()).first()
+    stu = db.query(Student).filter(Student.student_id == req.student_id).first()
     if not stu:
         raise HTTPException(status_code=404, detail="Không tìm thấy sinh viên!")
 
@@ -289,12 +288,12 @@ async def delete_student_secured(req: DeleteStudentRequest, db: Session = Depend
     db.commit()
 
     await broadcast_edge_delete(sid)
-    return {"status": "success", "message": f"Đã xóa sinh viên {sid} và phát lệnh gỡ bỏ khỏi Edge!"}
+    return {"status": "success", "message": f"Đã xóa hoàn toàn sinh viên {sid} và phát lệnh gỡ bỏ khỏi Edge!"}
 
 
-# ==========================================================================
+# --------------------------------------------------------------------------
 # 5. ĐỒNG BỘ VECTOR CHO EDGE CAMERA
-# ==========================================================================
+# --------------------------------------------------------------------------
 @app.get("/api/v1/students/sync-vectors")
 def sync_vectors_to_edge(
     x_device_token: Optional[str] = Header(None),
@@ -339,9 +338,9 @@ async def trigger_sync_all_devices(
     return {"status": "success", "message": f"Đã phát lệnh nạp toàn bộ {len(payload)} vector qua WebSocket!"}
 
 
-# ==========================================================================
-# 6. TIẾP NHẬN ĐIỂM DANH: DYNAMIC BUFFER
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 6. TIẾP NHẬN ĐIỂM DANH: DYNAMIC ROOM BUFFER (TRỐNG PHÒNG MỞ CỬA SỚM 60 PHÚT)
+# --------------------------------------------------------------------------
 class AttendancePunchRequest(BaseModel):
     student_id: str
     similarity: float
@@ -369,12 +368,14 @@ async def receive_punch(
         raise HTTPException(status_code=404, detail=f"Mã sinh viên {data.student_id} không tồn tại!")
 
     student_class = student.class_name.strip()
+
     punch_time = datetime.fromisoformat(data.timestamp) if data.timestamp else datetime.now()
     punch_date_str = punch_time.strftime("%Y-%m-%d")
     weekday = punch_time.weekday()
     punch_hm = punch_time.strftime("%H:%M")
     today_start = punch_time.replace(hour=0, minute=0, second=0, microsecond=0)
 
+    # 1. Lấy tất cả ca học tại phòng này trong ngày hôm nay, xếp theo thứ tự giờ bắt đầu
     room_schedules = db.query(Schedule).filter(
         Schedule.room_name == room_name,
         (Schedule.day_of_week == weekday) | (Schedule.day_of_week == str(weekday))
@@ -384,23 +385,30 @@ async def receive_punch(
     status_str = None
 
     for i, sch in enumerate(room_schedules):
+        # Kiểm tra ngày môn học hợp lệ
         if sch.start_date and sch.end_date:
             if not (sch.start_date <= punch_date_str <= sch.end_date):
                 continue
 
+        # Chỉ so khớp nếu ca học thuộc lớp của sinh viên
         if sch.class_name.strip().lower() != student_class.lower():
             continue
 
+        # DYNAMIC BUFFER: Xác định giờ mở cửa nhận diện sớm
         t_start = datetime.strptime(sch.start_time, "%H:%M")
         prev_sch = room_schedules[i - 1] if i > 0 else None
 
         if prev_sch:
+            # Nếu trước ca này có lớp khác: Cho phép quét ngay khi lớp trước vừa tan
             t_early = datetime.strptime(prev_sch.end_time, "%H:%M")
         else:
+            # Nếu trước ca này phòng trống: Mở nhận diện sớm trước 60 phút
             t_early = t_start - timedelta(minutes=60)
 
         early_hm = t_early.strftime("%H:%M")
         end_hm = sch.end_time
+        
+        # Mặc định ân hạn trễ 15 phút
         t_grace = t_start + timedelta(minutes=sch.grace_period or 15)
         grace_hm = t_grace.strftime("%H:%M")
 
@@ -413,11 +421,13 @@ async def receive_punch(
             break
 
     if not matched_schedule:
+        print(f"⚠️ [BỎ QUA] SV {student.full_name} ({student.student_id}) lớp {student_class} không có ca học hợp lệ tại phòng {room_name} lúc {punch_hm}")
         return {
             "status": "ignored",
-            "message": f"Sinh viên {student.full_name} không có ca học hợp lệ tại phòng {room_name} lúc {punch_hm}."
+            "message": f"Sinh viên {student.full_name} (Lớp {student_class}) không có ca học tại phòng {room_name} lúc {punch_hm}. Bỏ qua!"
         }
 
+    # Chống điểm danh trùng lặp trong ca học này
     existing_log = db.query(AttendanceLog).filter(
         AttendanceLog.schedule_id == matched_schedule.id,
         AttendanceLog.student_id == student.student_id,
@@ -443,6 +453,8 @@ async def receive_punch(
     db.add(log)
     db.commit()
     db.refresh(log)
+
+    print(f"🎯 [ĐIỂM DANH THÀNH CÔNG] SV: {student.full_name} | Lớp: {student_class} | Ca ID: {matched_schedule.id} ({matched_schedule.subject_name}) tại {room_name} -> {status_str}")
 
     await manager.broadcast({
         "event": "NEW_ATTENDANCE",
@@ -471,9 +483,9 @@ async def receive_punch(
     }
 
 
-# ==========================================================================
+# --------------------------------------------------------------------------
 # 7. TRA CỨU ĐIỂM DANH CÁ NHÂN
-# ==========================================================================
+# --------------------------------------------------------------------------
 @app.get("/api/v1/students/lookup-attendance")
 def lookup_student_attendance(
     student_id: Optional[str] = None,
@@ -505,6 +517,7 @@ def lookup_student_attendance(
             "snapshot": l.snapshot_image
         })
 
+    # Kiểm tra động các ca học hôm nay của sinh viên
     now = datetime.now()
     weekday = now.weekday()
     today_str = now.strftime("%Y-%m-%d")
@@ -522,6 +535,7 @@ def lookup_student_attendance(
             if not (sch.start_date <= today_str <= sch.end_date):
                 continue
 
+        # Ca học đã tan lớp mà chưa có log -> Báo Vắng[cite: 1, 4]
         if sch.end_time <= current_hm:
             attended = db.query(AttendanceLog).filter(
                 AttendanceLog.schedule_id == sch.id,
@@ -547,147 +561,130 @@ def lookup_student_attendance(
     }
 
 
-# ==========================================================================
-# 8. XUẤT MA TRẬN BÁO CÁO: GIỚI HẠN AN TOÀN THEO NGÀY (FIX CRASH 500)
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 8. XUẤT MA TRẬN BÁO CÁO: GIỚI HẠN THEO START_DATE & END_DATE MÔN HỌC
+# --------------------------------------------------------------------------
 @app.get("/api/v1/attendance/preview-by-class")
 def preview_class_attendance(
     class_name: str,
     subject_name: str,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    admin: dict = Depends(get_current_admin),
     db: Session = Depends(get_db)
 ):
-    try:
-        clean_class = class_name.strip()
-        students = db.query(Student).filter(
-            Student.class_name.ilike(f"%{clean_class}%")
-        ).order_by(Student.student_id).all()
-        
-        if not students:
-            return {
-                "class_name": class_name,
-                "subject_name": subject_name,
-                "dates": [],
-                "records": []
-            }
+    clean_class = class_name.strip()
+    students = db.query(Student).filter(
+        Student.class_name.ilike(f"%{clean_class}%")
+    ).order_by(Student.student_id).all()
+    
+    if not students:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy sinh viên thuộc lớp {class_name}")
 
-        now = datetime.now()
-        current_hm = now.strftime("%H:%M")
-        today_d = now.date()
+    now = datetime.now()
+    current_hm = now.strftime("%H:%M")
+    today_d = now.date()
 
-        schedules = db.query(Schedule).filter(
-            Schedule.subject_name.ilike(f"%{subject_name.strip()}%"),
-            Schedule.class_name.ilike(f"%{clean_class}%")
-        ).all()
+    # Lấy các ca học môn này của lớp
+    schedules = db.query(Schedule).filter(
+        Schedule.subject_name == subject_name,
+        Schedule.class_name.ilike(f"%{clean_class}%")
+    ).all()
 
-        if start_date:
-            try:
-                d_start = datetime.strptime(start_date, "%Y-%m-%d").date()
-            except Exception:
-                d_start = today_d
-        else:
-            valid_starts = [sch.start_date for sch in schedules if sch.start_date]
-            d_start = datetime.strptime(min(valid_starts), "%Y-%m-%d").date() if valid_starts else today_d
+    # Xác định khoảng ngày lọc
+    if start_date:
+        d_start = datetime.fromisoformat(start_date).date()
+    else:
+        earliest_start = min([sch.start_date for sch in schedules if sch.start_date], default=None)
+        d_start = datetime.fromisoformat(earliest_start).date() if earliest_start else today_d
 
-        if end_date:
-            try:
-                d_end = datetime.strptime(end_date, "%Y-%m-%d").date()
-            except Exception:
-                d_end = today_d
-        else:
-            valid_ends = [sch.end_date for sch in schedules if sch.end_date]
-            d_end = datetime.strptime(max(valid_ends), "%Y-%m-%d").date() if valid_ends else today_d
+    if end_date:
+        d_end = datetime.fromisoformat(end_date).date()
+    else:
+        latest_end = max([sch.end_date for sch in schedules if sch.end_date], default=None)
+        d_end = min(today_d, datetime.fromisoformat(latest_end).date()) if latest_end else today_d
 
-        actual_logs = db.query(AttendanceLog).filter(
-            AttendanceLog.subject_name.ilike(f"%{subject_name.strip()}%"),
-            AttendanceLog.punch_time >= datetime.combine(d_start, datetime.min.time()),
-            AttendanceLog.punch_time <= datetime.combine(d_end, datetime.max.time())
-        ).all()
+    actual_logs = db.query(AttendanceLog).filter(
+        AttendanceLog.subject_name == subject_name,
+        AttendanceLog.punch_time >= datetime.combine(d_start, datetime.min.time()),
+        AttendanceLog.punch_time <= datetime.combine(d_end, datetime.max.time())
+    ).all()
 
-        log_map = {}
-        for l in actual_logs:
-            if l.punch_time and l.student_id:
-                d_str = l.punch_time.strftime("%d/%m/%Y")
-                log_map[(d_str, l.schedule_id, l.student_id)] = l.status
+    log_map = {}
+    for l in actual_logs:
+        if l.punch_time:
+            d_str = l.punch_time.strftime("%d/%m/%Y")
+            log_map[(d_str, l.schedule_id, l.student_id)] = l.status
 
-        sessions = []
-        curr_d = d_start
-        while curr_d <= d_end:
-            w = curr_d.weekday()
-            curr_d_str = curr_d.strftime("%Y-%m-%d")
+    sessions = []
+    curr_d = d_start
+    while curr_d <= d_end:
+        w = curr_d.weekday()
+        curr_d_str = curr_d.strftime("%Y-%m-%d")
 
-            for sch in schedules:
-                if sch.start_date and sch.end_date:
-                    if not (sch.start_date <= curr_d_str <= sch.end_date):
-                        continue
+        for sch in schedules:
+            if sch.start_date and sch.end_date:
+                if not (sch.start_date <= curr_d_str <= sch.end_date):
+                    continue
 
-                try:
-                    sch_day = int(sch.day_of_week)
-                except Exception:
-                    sch_day = 0
+            if int(sch.day_of_week) == w:
+                is_finished = False
+                if curr_d < today_d:
+                    is_finished = True
+                elif curr_d == today_d and sch.end_time <= current_hm:
+                    is_finished = True
 
-                if sch_day == w:
-                    is_finished = False
-                    if curr_d < today_d:
-                        is_finished = True
-                    elif curr_d == today_d and (sch.end_time or "23:59") <= current_hm:
-                        is_finished = True
+                if is_finished:
+                    d_vn_str = curr_d.strftime("%d/%m/%Y")
+                    sessions.append({
+                        "date_str": d_vn_str,
+                        "schedule_id": sch.id,
+                        "col_header": f"{d_vn_str} ({sch.start_time}-{sch.end_time})"
+                    })
+        curr_d += timedelta(days=1)
 
-                    if is_finished:
-                        d_vn_str = curr_d.strftime("%d/%m/%Y")
-                        sessions.append({
-                            "date_str": d_vn_str,
-                            "schedule_id": sch.id,
-                            "col_header": f"{d_vn_str} ({sch.start_time}-{sch.end_time})"
-                        })
-            curr_d += timedelta(days=1)
+    column_headers = [s["col_header"] for s in sessions]
 
-        column_headers = [s["col_header"] for s in sessions]
+    records = []
+    for idx, s in enumerate(students, 1):
+        stu_dates = {}
+        dung = 0
+        tre = 0
+        vang = 0
 
-        records = []
-        for idx, s in enumerate(students, 1):
-            stu_dates = {}
-            dung, tre, vang = 0, 0, 0
+        for ses in sessions:
+            status = log_map.get((ses["date_str"], ses["schedule_id"], s.student_id))
+            col_key = ses["col_header"]
+            if status:
+                stu_dates[col_key] = status
+                if status == "Đúng giờ":
+                    dung += 1
+                elif status == "Đi trễ":
+                    tre += 1
+            else:
+                stu_dates[col_key] = "Vắng"
+                vang += 1
 
-            for ses in sessions:
-                status = log_map.get((ses["date_str"], ses["schedule_id"], s.student_id))
-                col_key = ses["col_header"]
-                if status:
-                    stu_dates[col_key] = status
-                    if status == "Đúng giờ":
-                        dung += 1
-                    elif status == "Đi trễ":
-                        tre += 1
-                else:
-                    stu_dates[col_key] = "Vắng"
-                    vang += 1
+        records.append({
+            "stt": idx,
+            "student_id": s.student_id,
+            "full_name": s.full_name,
+            "class_name": s.class_name,
+            "dates": stu_dates,
+            "summary": {"dung": dung, "tre": tre, "vang": vang}
+        })
 
-            records.append({
-                "stt": idx,
-                "student_id": s.student_id,
-                "full_name": s.full_name,
-                "class_name": s.class_name or clean_class,
-                "dates": stu_dates,
-                "summary": {"dung": dung, "tre": tre, "vang": vang}
-            })
-
-        return {
-            "class_name": class_name,
-            "subject_name": subject_name,
-            "dates": column_headers,
-            "records": records
-        }
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Lỗi tính toán điểm danh: {str(e)}")
+    return {
+        "class_name": class_name,
+        "subject_name": subject_name,
+        "dates": column_headers,
+        "records": records
+    }
 
 
-# ==========================================================================
-# 9. CRUD CAMERA VÀ LỊCH HỌC
-# ==========================================================================
+# --------------------------------------------------------------------------
+# 9. QUẢN LÝ THIẾT BỊ CAMERA & LỊCH HỌC (CRUD)
+# --------------------------------------------------------------------------
 @app.get("/api/v1/devices/list")
 def list_devices(admin: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
     return db.query(CameraDevice).all()
