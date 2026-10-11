@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+    <!-- THƯ VIỆN XUẤT EXCEL CHUẨN CLIENT -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         .active-tab {
@@ -26,11 +28,10 @@
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col font-sans overflow-x-hidden">
 
-    <!-- HEADER NAVIGATION: GỘP 1 NÚT ĐĂNG NHẬP DUY NHẤT -->
+    <!-- HEADER NAVIGATION (GỘP ĐĂNG KÝ VÀO QUẢN LÝ SINH VIÊN) -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm w-full">
         <div class="w-full px-6 flex justify-between items-center h-16 gap-4">
             
-            <!-- LOGO & BRAND -->
             <div class="flex items-center gap-3 shrink-0">
                 <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-md">
                     AI
@@ -41,18 +42,12 @@
                 </div>
             </div>
 
-            <!-- TABS ĐIỀU HƯỚNG TRÊN 1 DÒNG DÃN RỘNG -->
             <nav class="flex items-center justify-start lg:justify-center gap-4 xl:gap-8 text-sm font-medium text-slate-600 h-full whitespace-nowrap flex-1">
                 <button onclick="switchTab('student-portal')" id="tab-btn-student-portal" class="flex items-center gap-1.5 h-full active-tab transition whitespace-nowrap px-1">
                     <span>🎓</span> Tra Cứu Điểm Danh
                 </button>
-
-                <!-- Các Tab quản trị dành riêng cho Giảng Viên -->
-                <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
-                    <span>🟢</span> Giám Sát & Báo Cáo
-                </button>
-                <button onclick="switchTab('enroll')" id="tab-btn-enroll" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
-                    <span>👤</span> Đăng Ký Sinh Viên
+                <button onclick="switchTab('schedules')" id="tab-btn-schedules" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
+                    <span>📅</span> Quản Lý Lịch Học
                 </button>
                 <button onclick="switchTab('students')" id="tab-btn-students" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
                     <span>👥</span> Quản Lý Sinh Viên
@@ -60,13 +55,12 @@
                 <button onclick="switchTab('cameras')" id="tab-btn-cameras" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
                     <span>📹</span> Quản Lý Camera
                 </button>
-                <button onclick="switchTab('schedules')" id="tab-btn-schedules" class="teacher-only hidden flex items-center gap-1.5 h-full hover:text-blue-600 transition whitespace-nowrap px-1">
-                    <span>📅</span> Quản Lý Lịch Học
-                </button>
             </nav>
 
-            <!-- TRẠNG THÁI SERVER & NÚT ĐĂNG NHẬP / ĐĂNG XUẤT ĐƠN -->
-            <div class="flex items-center gap-3 shrink-0">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <button onclick="triggerSyncToEdgeNow()" id="btn-sync-edge" title="Bắn vector qua WebSocket" class="teacher-only hidden text-xs px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-100 transition whitespace-nowrap">
+                    🔄 Đồng Bộ Edge
+                </button>
                 <span id="socket-badge" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1.5 whitespace-nowrap">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Server Online
                 </span>
@@ -79,9 +73,7 @@
 
     <main class="w-full px-6 py-6 flex-1 space-y-6">
 
-        <!-- ============================================================== -->
-        <!-- TAB 1: TRA CỨU ĐIỂM DANH SINH VIÊN (HỖ TRỢ CẢ GV VÀ SV)       -->
-        <!-- ============================================================== -->
+        <!-- TAB 1: TRA CỨU ĐIỂM DANH SINH VIÊN -->
         <section id="view-student-portal" class="space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
                 <div class="border-b border-slate-100 pb-4 mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -89,7 +81,7 @@
                         <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <span>🎓</span> Lịch Sử Điểm Danh Sinh Viên
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1" id="lookup-desc">Sinh viên đăng nhập xem dữ liệu cá nhân, Giảng viên có thể tra cứu bất kỳ sinh viên nào.</p>
+                        <p class="text-xs text-slate-500 mt-1">Hệ thống đối soát từng ca học: ca nào đã tan lớp mà chưa điểm danh sẽ tự động hiển thị trạng thái Vắng.</p>
                     </div>
                     <div id="user-info-box" class="hidden text-right">
                         <span id="display-user-name" class="font-bold text-blue-600 text-sm block"></span>
@@ -97,11 +89,10 @@
                     </div>
                 </div>
 
-                <!-- KHU VỰC TRA CỨU DÀNH CHO GIẢNG VIÊN -->
                 <div id="teacher-search-box" class="hidden mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200">
                     <label class="text-xs font-bold text-blue-900 block mb-1.5">Giảng Viên Tra Cứu Sinh Viên:</label>
                     <div class="flex gap-2">
-                        <input type="text" id="teacher-query-sid" placeholder="Nhập Mã Sinh Viên (VD: SV10221001)..." class="flex-1 p-2.5 text-xs border border-blue-300 rounded-xl uppercase font-mono outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="teacher-query-sid" placeholder="Nhập Mã Sinh Viên (VD: 123220075)..." class="flex-1 p-2.5 text-xs border border-blue-300 rounded-xl uppercase font-mono outline-none focus:ring-2 focus:ring-blue-500">
                         <button onclick="lookupStudentByTeacher()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow">
                             Tra Cứu
                         </button>
@@ -121,7 +112,7 @@
                     <table class="w-full text-left border-collapse text-xs sm:text-sm">
                         <thead>
                             <tr class="bg-slate-50 text-slate-600 border-b">
-                                <th class="p-3">Thời Gian</th>
+                                <th class="p-3">Thời Gian / Ca Học</th>
                                 <th class="p-3">Phòng Học</th>
                                 <th class="p-3">Môn Học</th>
                                 <th class="p-3 text-center">Bằng Chứng</th>
@@ -134,236 +125,140 @@
             </div>
         </section>
 
-        <!-- ============================================================== -->
-        <!-- TAB 2 (GIẢNG VIÊN): DASHBOARD & BÁO CÁO EXCEL MA TRẬN          -->
-        <!-- ============================================================== -->
-        <section id="view-dashboard" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                    <div>
+        <!-- TAB 2: QUẢN LÝ LỊCH HỌC -->
+        <section id="view-schedules" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+                        <span id="sch-form-icon">➕</span> <span id="sch-form-title">Thêm / Chỉnh Sửa Lịch Học</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mb-4">Mỗi ca học gắn với một lớp và một phòng. Điểm danh chỉ hợp lệ trong khung giờ của ca này.</p>
+
+                    <form id="form-add-schedule" class="space-y-3.5 text-sm">
+                        <input type="hidden" id="sch-id" value="">
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Phòng Học *</label>
+                                <input type="text" id="sch-room" placeholder="VD: F404" required class="w-full mt-1 p-2 border rounded-xl uppercase bg-white">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Lớp Giảng Dạy *</label>
+                                <input type="text" id="sch-class" placeholder="VD: 22ES" required class="w-full mt-1 p-2 border rounded-xl bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Ngày Bắt Đầu Môn *</label>
+                                <input type="date" id="sch-start-date" required class="w-full mt-1 p-2 border rounded-xl text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Ngày Kết Thúc Môn *</label>
+                                <input type="date" id="sch-end-date" required class="w-full mt-1 p-2 border rounded-xl text-xs bg-white">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Thứ trong tuần *</label>
+                                <select id="sch-day" class="w-full mt-1 p-2 border rounded-xl bg-white font-semibold">
+                                    <option value="0">Thứ Hai</option>
+                                    <option value="1">Thứ Ba</option>
+                                    <option value="2">Thứ Tư</option>
+                                    <option value="3">Thứ Năm</option>
+                                    <option value="4">Thứ Sáu</option>
+                                    <option value="5">Thứ Bảy</option>
+                                    <option value="6">Chủ Nhật</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Tên Môn Học *</label>
+                                <input type="text" id="sch-subject" placeholder="VD: Hệ Thống Nhúng" required class="w-full mt-1 p-2 border rounded-xl bg-white">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-slate-600">Giảng Viên Phụ Trách *</label>
+                            <input type="text" id="sch-teacher" placeholder="VD: TS. Nguyễn Văn B" required class="w-full mt-1 p-2 border rounded-xl bg-white">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Giờ Bắt Đầu *</label>
+                                <input type="time" id="sch-start" required class="w-full mt-1 p-2 border rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-600">Giờ Kết Thúc *</label>
+                                <input type="time" id="sch-end" required class="w-full mt-1 p-2 border rounded-xl bg-white">
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-[11px] text-blue-800 space-y-1">
+                            <p class="font-bold flex items-center gap-1"><span>💡</span> Cơ chế nhận diện thông minh:</p>
+                            <p>• <b>Đến sớm:</b> Nếu phòng trống, mở nhận diện trước <b>60 phút</b>; nếu có ca trước, mở ngay khi ca trước vừa tan.</p>
+                            <p>• <b>Đi trễ:</b> Sau giờ vào lớp <b>15 phút</b> sẽ ghi nhận Đi trễ.</p>
+                        </div>
+
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" id="btn-save-schedule" class="flex-1 bg-slate-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition shadow text-xs cursor-pointer">
+                                ➕ LƯU LỊCH HỌC
+                            </button>
+                            <button type="button" onclick="cancelEditSchedule()" id="btn-cancel-schedule" class="hidden px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition text-xs cursor-pointer">
+                                Hủy Bỏ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <span>📥</span> Xuất Sổ Điểm Danh Chi Tiết Theo Lớp & Môn Học
+                            <span>📋</span> Danh Sách Các Ca Học Đã Lên Lịch
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Dành cho Giảng viên: Tra cứu xem trước trực tiếp trên giao diện và tải báo cáo Excel</p>
-                    </div>
-                </div>
-
-                <!-- BỘ LỌC VÀ NÚT BẤM -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                    <div>
-                        <label class="text-xs font-bold text-slate-700 block mb-1.5">Chọn Lớp Sinh Hoạt *</label>
-                        <select id="export-class" class="w-full p-2.5 text-xs border rounded-xl bg-slate-50 font-semibold"></select>
+                        <button onclick="fetchSchedules()" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Làm mới</button>
                     </div>
 
-                    <div>
-                        <label class="text-xs font-bold text-slate-700 block mb-1.5">Chọn Môn Học *</label>
-                        <select id="export-subject" class="w-full p-2.5 text-xs border rounded-xl bg-slate-50 font-semibold"></select>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs font-semibold text-slate-500 block mb-1">Từ ngày</label>
-                            <input type="date" id="export-start-date" class="w-full p-2 text-xs border rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-xs font-semibold text-slate-500 block mb-1">Đến ngày</label>
-                            <input type="date" id="export-end-date" class="w-full p-2 text-xs border rounded-xl">
-                        </div>
-                    </div>
-
-                    <!-- NÚT TRA CỨU -->
-                    <div>
-                        <button onclick="previewClassAttendance()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition">
-                            <span>🔍</span> TRA CỨU
-                        </button>
-                    </div>
-
-                    <!-- NÚT TẢI EXCEL (ẨN MẶC ĐỊNH, CHỈ HIỆN KHI ĐÃ CÓ KẾT QUẢ) -->
-                    <div>
-                        <button id="btn-export-excel" onclick="downloadClassAttendanceExcel()" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition">
-                            <span>📊</span> TẢI BÁO CÁO EXCEL
-                        </button>
-                    </div>
-                </div>
-
-                <!-- KHU VỰC HIỂN THỊ KẾT QUẢ MA TRẬN ĐIỂM DANH -->
-                <div id="preview-result-container" class="hidden mt-6 border-t border-slate-100 pt-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 id="preview-title" class="text-xs sm:text-sm font-bold text-slate-800"></h3>
-                        <span id="preview-count" class="text-xs text-slate-500 font-semibold"></span>
-                    </div>
-
-                    <div class="overflow-x-auto border rounded-xl">
+                    <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs">
-                            <thead id="preview-table-head" class="bg-slate-50 text-slate-700 border-b"></thead>
-                            <tbody id="preview-table-body" class="divide-y divide-slate-100"></tbody>
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 border-b">
+                                    <th class="p-2.5">ID</th>
+                                    <th class="p-2.5">Phòng</th>
+                                    <th class="p-2.5">Lớp Học</th>
+                                    <th class="p-2.5">Thời Gian Môn</th>
+                                    <th class="p-2.5">Thứ</th>
+                                    <th class="p-2.5">Khung Giờ</th>
+                                    <th class="p-2.5">Môn Học</th>
+                                    <th class="p-2.5 text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedules-tbody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
-            <!-- BẢNG NHẬT KÝ ĐIỂM DANH TOÀN HỆ THỐNG -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <span>📡</span> Nhật Ký Điểm Danh Nhận Diện Trực Tiếp
-                </h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-50 text-slate-600 border-b">
-                                <th class="p-3.5 font-semibold">Phòng Học</th>
-                                <th class="p-3.5 font-semibold">Môn Học</th>
-                                <th class="p-3.5 font-semibold">Mã Sinh Viên</th>
-                                <th class="p-3.5 font-semibold">Họ và Tên</th>
-                                <th class="p-3.5 font-semibold">Thời Gian</th>
-                                <th class="p-3.5 font-semibold text-center">Bằng Chứng</th>
-                                <th class="p-3.5 font-semibold text-center">Trạng Thái</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-tbody" class="divide-y divide-slate-100"></tbody>
-                    </table>
-                </div>
-            </div>
         </section>
 
-        <!-- ============================================================== -->
-        <!-- TAB 3 (GIẢNG VIÊN): ĐĂNG KÝ SINH VIÊN EKYC                     -->
-        <!-- ============================================================== -->
-        <section id="view-enroll" class="hidden">
-            <div class="max-w-2xl mx-auto mb-8">
-                <div class="flex items-center justify-between relative">
-                    <div class="w-full absolute top-1/2 -translate-y-1/2 h-1 bg-slate-200 z-0"></div>
-                    <div id="step-progress-bar" class="w-0 absolute top-1/2 -translate-y-1/2 h-1 bg-blue-600 z-0 transition-all duration-500"></div>
-
-                    <div class="relative z-10 flex flex-col items-center bg-white px-2">
-                        <div id="badge-step-1" class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center shadow-md">1</div>
-                        <span class="text-xs font-bold mt-2 text-blue-600">Nhập Thông Tin</span>
-                    </div>
-
-                    <div class="relative z-10 flex flex-col items-center bg-white px-2">
-                        <div id="badge-step-2" class="w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-all">2</div>
-                        <span class="text-xs font-semibold mt-2 text-slate-400" id="label-step-2">Quét Khuôn Mặt eKYC</span>
-                    </div>
-                </div>
-            </div>
-
-            <div id="enroll-step-form" class="max-w-lg mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div class="text-center mb-6">
-                    <span class="text-3xl">📝</span>
-                    <h2 class="text-lg font-bold text-slate-900 mt-2">Thông Tin Sinh Viên</h2>
-                    <p class="text-xs text-slate-500 mt-1">Giảng viên nhập thông tin để thu thập khuôn mặt</p>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-700">Mã Sinh Viên *</label>
-                        <input type="text" id="stu-id" class="w-full mt-1.5 p-3 border rounded-xl text-sm uppercase focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: SV10221001" required>
-                    </div>
-
-                    <div>
-                        <label class="text-xs font-bold text-slate-700">Họ và Tên *</label>
-                        <input type="text" id="stu-name" class="w-full mt-1.5 p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Nguyễn Văn A" required>
-                    </div>
-
-                    <div>
-                        <label class="text-xs font-bold text-slate-700">Lớp Sinh Hoạt *</label>
-                        <input type="text" id="stu-class" class="w-full mt-1.5 p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 21TCLC_DT1" required>
-                    </div>
-
-                    <button onclick="goToFaceCaptureStep()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">
-                        <span>Tiếp Tục Quét Khuôn Mặt</span>
-                        <span>➡️</span>
-                    </button>
-                </div>
-            </div>
-
-            <div id="enroll-step-camera" class="hidden max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4">
-                    <div>
-                        <span class="text-xs text-slate-400 font-bold uppercase">Hồ sơ sinh viên:</span>
-                        <h3 id="display-stu-name" class="text-base font-extrabold text-blue-600 leading-tight"></h3>
-                        <p id="display-stu-meta" class="text-xs text-slate-500"></p>
-                    </div>
-                    <button onclick="backToFormStep()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border hover:bg-slate-50 text-slate-600">
-                        ↩ Sửa lại thông tin
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                    <div class="lg:col-span-8 flex flex-col items-center">
-                        <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center shadow-xl">
-                            <video id="ekyc-video" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
-                            <canvas id="ekyc-canvas" class="hidden"></canvas>
-
-                            <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-                                <defs>
-                                    <mask id="ekyc-mask">
-                                        <rect width="100%" height="100%" fill="white" />
-                                        <ellipse cx="50%" cy="48%" rx="28%" ry="38%" fill="black" />
-                                    </mask>
-                                </defs>
-                                <rect width="100%" height="100%" fill="rgba(15, 23, 42, 0.7)" mask="url(#ekyc-mask)" />
-                            </svg>
-
-                            <div id="oval-guide" class="absolute w-[56%] h-[76%] top-[10%] rounded-full border-2 border-dashed border-rose-500 pointer-events-none transition-all duration-300 flex flex-col items-center justify-between p-3">
-                                <span id="guide-top-text" class="text-[11px] font-bold text-rose-300 bg-slate-900/80 px-2.5 py-0.5 rounded-full">Chưa phát hiện khuôn mặt</span>
-                                <div id="center-dot" class="w-4 h-4 border border-rose-400 rounded-full flex items-center justify-center">
-                                    <div class="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>
-                                </div>
-                                <span class="text-[11px] font-semibold text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-full">Giữ mặt trong oval</span>
-                            </div>
-
-                            <div id="laser-beam" class="absolute left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] pointer-events-none scanner-beam hidden"></div>
-
-                            <div id="countdown-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center hidden pointer-events-none">
-                                <span id="countdown-num" class="text-7xl font-black text-white drop-shadow-md animate-ping">📸</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-4 space-y-4">
-                        <div class="p-4 rounded-xl bg-blue-50 border border-blue-200">
-                            <span class="text-xs font-bold text-blue-700 uppercase tracking-wider block mb-1">Hướng Dẫn Hiện Tại:</span>
-                            <p id="ekyc-instruction" class="text-sm font-extrabold text-blue-900 leading-snug">
-                                Đang mở camera và nạp mô hình nhận diện...
-                            </p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <div id="step-box-1" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-700">1. Nhìn Trực Diện</span>
-                                <span id="step-status-1" class="text-xs font-semibold text-slate-400">Chờ...</span>
-                            </div>
-                            <div id="step-box-2" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-700">2. Nghiêng Sang Trái</span>
-                                <span id="step-status-2" class="text-xs font-semibold text-slate-400">Chờ...</span>
-                            </div>
-                            <div id="step-box-3" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-700">3. Nghiêng Sang Phải</span>
-                                <span id="step-status-3" class="text-xs font-semibold text-slate-400">Chờ...</span>
-                            </div>
-                        </div>
-
-                        <div id="enroll-alert" class="text-xs font-bold text-center hidden p-3 rounded-xl"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ============================================================== -->
-        <!-- TAB 4 (GIẢNG VIÊN): QUẢN LÝ SINH VIÊN                          -->
-        <!-- ============================================================== -->
+        <!-- TAB 3: QUẢN LÝ SINH VIÊN (GỘP DANH SÁCH & NÚT ĐĂNG KÝ MỚI) -->
         <section id="view-students" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            
+            <!-- PHẦN 1: BẢNG DANH SÁCH SINH VIÊN -->
+            <div id="subview-students-list" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <span>👥</span> Danh Sách Hồ Sơ Sinh Viên
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Tra cứu theo mã số, lọc theo lớp học và quản lý bảo mật</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Quản lý hồ sơ, vector khuôn mặt và đăng ký sinh viên mới</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <!-- NÚT ĐĂNG KÝ SINH VIÊN MỚI NỔI BẬT -->
+                        <button onclick="showEnrollSubView()" class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                            <span>➕</span> Đăng Ký Sinh Viên Mới
+                        </button>
+
                         <div class="flex items-center gap-1.5">
                             <span class="text-xs font-bold text-slate-600">Lớp:</span>
                             <select id="filter-class" onchange="fetchStudents()" class="p-2 border rounded-xl text-xs bg-slate-50 font-semibold outline-none focus:ring-2 focus:ring-blue-500">
@@ -376,7 +271,7 @@
                             <span class="absolute left-2.5 top-2.5 text-xs text-slate-400">🔍</span>
                         </div>
 
-                        <button onclick="fetchStudents()" class="px-3.5 py-2 text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-100 transition">
+                        <button onclick="fetchStudents()" class="px-3.5 py-2 text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-100 transition cursor-pointer">
                             Làm mới
                         </button>
                     </div>
@@ -403,11 +298,138 @@
                     Tổng số: 0 sinh viên
                 </div>
             </div>
+
+            <!-- PHẦN 2: FORM & QUÉT KHUÔN MẶT ĐĂNG KÝ (NẰM TRONG QUẢN LÝ SINH VIÊN) -->
+            <div id="subview-students-enroll" class="hidden space-y-6">
+                <div class="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <button onclick="backToStudentsList()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer">
+                        <span>⬅️</span> Quay lại danh sách sinh viên
+                    </button>
+                    <span class="text-xs font-bold text-slate-500">Đăng ký hồ sơ & quét eKYC 3 góc</span>
+                </div>
+
+                <div class="max-w-2xl mx-auto mb-4">
+                    <div class="flex items-center justify-between relative">
+                        <div class="w-full absolute top-1/2 -translate-y-1/2 h-1 bg-slate-200 z-0"></div>
+                        <div id="step-progress-bar" class="w-0 absolute top-1/2 -translate-y-1/2 h-1 bg-blue-600 z-0 transition-all duration-500"></div>
+
+                        <div class="relative z-10 flex flex-col items-center bg-white px-2">
+                            <div id="badge-step-1" class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center shadow-md">1</div>
+                            <span class="text-xs font-bold mt-2 text-blue-600">Nhập Thông Tin</span>
+                        </div>
+
+                        <div class="relative z-10 flex flex-col items-center bg-white px-2">
+                            <div id="badge-step-2" class="w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-all">2</div>
+                            <span class="text-xs font-semibold mt-2 text-slate-400" id="label-step-2">Quét Khuôn Mặt eKYC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BƯỚC 1: FORM NHẬP THÔNG TIN -->
+                <div id="enroll-step-form" class="max-w-lg mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="text-center mb-6">
+                        <span class="text-3xl">📝</span>
+                        <h2 class="text-lg font-bold text-slate-900 mt-2">Thông Tin Sinh Viên</h2>
+                        <p class="text-xs text-slate-500 mt-1">Lưu xong sẽ tự động phát vector xuống tất cả Edge Camera qua WebSocket</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-700">Mã Sinh Viên *</label>
+                            <input type="text" id="stu-id" class="w-full mt-1.5 p-3 border rounded-xl text-sm uppercase focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 123220075" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-700">Họ và Tên *</label>
+                            <input type="text" id="stu-name" class="w-full mt-1.5 p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Nguyễn Văn A" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-700">Lớp Sinh Hoạt *</label>
+                            <input type="text" id="stu-class" class="w-full mt-1.5 p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 22ES" required>
+                        </div>
+                        <button onclick="goToFaceCaptureStep()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+                            <span>Tiếp Tục Quét Khuôn Mặt</span>
+                            <span>➡️</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BƯỚC 2: QUÉT KHUÔN MẶT EKYC -->
+                <div id="enroll-step-camera" class="hidden max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <span class="text-xs text-slate-400 font-bold uppercase">Hồ sơ sinh viên:</span>
+                            <h3 id="display-stu-name" class="text-base font-extrabold text-blue-600 leading-tight"></h3>
+                            <p id="display-stu-meta" class="text-xs text-slate-500"></p>
+                        </div>
+                        <button onclick="backToFormStep()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border hover:bg-slate-50 text-slate-600 cursor-pointer">
+                            ↩ Sửa lại thông tin
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                        <div class="lg:col-span-8 flex flex-col items-center">
+                            <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center shadow-xl">
+                                <video id="ekyc-video" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
+                                <canvas id="ekyc-canvas" class="hidden"></canvas>
+
+                                <svg class="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <mask id="ekyc-mask">
+                                            <rect width="100%" height="100%" fill="white" />
+                                            <ellipse cx="50%" cy="48%" rx="28%" ry="38%" fill="black" />
+                                        </mask>
+                                    </defs>
+                                    <rect width="100%" height="100%" fill="rgba(15, 23, 42, 0.7)" mask="url(#ekyc-mask)" />
+                                </svg>
+
+                                <div id="oval-guide" class="absolute w-[56%] h-[76%] top-[10%] rounded-full border-2 border-dashed border-rose-500 pointer-events-none transition-all duration-300 flex flex-col items-center justify-between p-3">
+                                    <span id="guide-top-text" class="text-[11px] font-bold text-rose-300 bg-slate-900/80 px-2.5 py-0.5 rounded-full">Chưa phát hiện khuôn mặt</span>
+                                    <div id="center-dot" class="w-4 h-4 border border-rose-400 rounded-full flex items-center justify-center">
+                                        <div class="w-1.5 h-1.5 bg-rose-500 rounded-full"></div>
+                                    </div>
+                                    <span class="text-[11px] font-semibold text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded-full">Giữ mặt trong oval</span>
+                                </div>
+
+                                <div id="laser-beam" class="absolute left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] pointer-events-none scanner-beam hidden"></div>
+
+                                <div id="countdown-overlay" class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center hidden pointer-events-none">
+                                    <span id="countdown-num" class="text-7xl font-black text-white drop-shadow-md animate-ping">📸</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-4 space-y-4">
+                            <div class="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                                <span class="text-xs font-bold text-blue-700 uppercase tracking-wider block mb-1">Hướng Dẫn Hiện Tại:</span>
+                                <p id="ekyc-instruction" class="text-sm font-extrabold text-blue-900 leading-snug">
+                                    Đang mở camera và nạp mô hình nhận diện...
+                                </p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <div id="step-box-1" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-700">1. Nhìn Trực Diện</span>
+                                    <span id="step-status-1" class="text-xs font-semibold text-slate-400">Chờ...</span>
+                                </div>
+                                <div id="step-box-2" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-700">2. Nghiêng Sang Trái</span>
+                                    <span id="step-status-2" class="text-xs font-semibold text-slate-400">Chờ...</span>
+                                </div>
+                                <div id="step-box-3" class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-700">3. Nghiêng Sang Phải</span>
+                                    <span id="step-status-3" class="text-xs font-semibold text-slate-400">Chờ...</span>
+                                </div>
+                            </div>
+
+                            <div id="enroll-alert" class="text-xs font-bold text-center hidden p-3 rounded-xl"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
-        <!-- ============================================================== -->
-        <!-- TAB 5 (GIẢNG VIÊN): QUẢN LÝ CAMERA (BẢO MẬT TOKEN)             -->
-        <!-- ============================================================== -->
+        <!-- TAB 4: QUẢN LÝ CAMERA -->
         <section id="view-cameras" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
@@ -416,26 +438,26 @@
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                             <span>📹</span> Đăng Ký Camera Cho Phòng Học
                         </h2>
-                        <p class="text-xs text-slate-500">Mỗi camera sẽ được gán cố định cho một phòng và cấp mã Token riêng</p>
+                        <p class="text-xs text-slate-500">Mã Token bí mật gắn chặt với Camera tại phòng đó để xác thực điểm danh đúng phòng</p>
                     </div>
 
                     <form id="form-register-device" class="space-y-3.5 text-sm">
                         <div>
                             <label class="text-xs font-bold text-slate-700">Mã Thiết Bị (Device ID) *</label>
-                            <input type="text" id="dev-id" placeholder="VD: CAM_P302_01" required class="w-full mt-1 p-2.5 border rounded-xl uppercase font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="dev-id" placeholder="VD: Cam_F404" required class="w-full mt-1 p-2.5 border rounded-xl uppercase font-mono text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
 
                         <div>
                             <label class="text-xs font-bold text-slate-700">Tên Mô Tả Thiết Bị *</label>
-                            <input type="text" id="dev-name" placeholder="VD: Camera Cửa Trước Phòng 302" required class="w-full mt-1 p-2.5 border rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="dev-name" placeholder="VD: Camera Cửa Trước Phòng F404" required class="w-full mt-1 p-2.5 border rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
 
                         <div>
                             <label class="text-xs font-bold text-slate-700">Phòng Học Gắn Kèm *</label>
-                            <input type="text" id="dev-room" placeholder="VD: P302" required class="w-full mt-1 p-2.5 border rounded-xl uppercase font-bold text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="text" id="dev-room" placeholder="VD: F404" required class="w-full mt-1 p-2.5 border rounded-xl uppercase font-bold text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
 
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow text-xs flex items-center justify-center gap-2">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow text-xs flex items-center justify-center gap-2 cursor-pointer">
                             <span>➕</span> ĐĂNG KÝ VÀ TẠO MÃ TOKEN
                         </button>
                     </form>
@@ -445,16 +467,16 @@
                             <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
                                 <span>🔑</span> MÃ TOKEN CAMERA (CHỈ HIỆN 1 LẦN):
                             </span>
-                            <button type="button" onclick="closeTokenBox()" class="text-amber-800 hover:text-amber-950 font-bold text-xs">
+                            <button type="button" onclick="closeTokenBox()" class="text-amber-800 hover:text-amber-950 font-bold text-xs cursor-pointer">
                                 ✕ Đóng
                             </button>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="password" id="generated-token-text" readonly class="w-full p-2 text-xs font-mono bg-white border border-amber-300 rounded-lg text-slate-800 font-bold">
-                            <button type="button" onclick="toggleViewNewToken()" class="px-2.5 py-2 bg-white border border-amber-300 text-slate-600 rounded-lg text-xs" title="Ẩn/Hiện">
+                            <button type="button" onclick="toggleViewNewToken()" class="px-2.5 py-2 bg-white border border-amber-300 text-slate-600 rounded-lg text-xs cursor-pointer" title="Ẩn/Hiện">
                                 👁️
                             </button>
-                            <button type="button" onclick="copyGeneratedToken()" class="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shrink-0">
+                            <button type="button" onclick="copyGeneratedToken()" class="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shrink-0 cursor-pointer">
                                 Copy & Ẩn
                             </button>
                         </div>
@@ -466,7 +488,7 @@
                         <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                             <span>📋</span> Danh Sách Camera Đang Kết Nối
                         </h2>
-                        <button onclick="fetchDevices()" class="text-xs text-blue-600 hover:underline font-semibold">Làm mới</button>
+                        <button onclick="fetchDevices()" class="text-xs text-blue-600 hover:underline font-semibold cursor-pointer">Làm mới</button>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -488,165 +510,97 @@
             </div>
         </section>
 
-        <!-- ============================================================== -->
-        <!-- TAB 6 (GIẢNG VIÊN): QUẢN LÝ LỊCH HỌC                           -->
-        <!-- ============================================================== -->
-        <section id="view-schedules" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                <div class="lg:col-span-5 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h2 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
-                        <span>➕</span> Thêm / Chỉnh Sửa Lịch Học
-                    </h2>
-                    <p class="text-xs text-slate-500 mb-4">Phải gán lớp học cụ thể để phân biệt sinh viên đi ngang qua</p>
-
-                    <form id="form-add-schedule" class="space-y-3.5 text-sm">
-                        <input type="hidden" id="sch-id" value="">
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Phòng Học *</label>
-                                <input type="text" id="sch-room" placeholder="VD: P302" required class="w-full mt-1 p-2 border rounded-xl uppercase">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Lớp Giảng Dạy *</label>
-                                <input type="text" id="sch-class" placeholder="VD: 21TCLC_DT1" required class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Thứ trong tuần *</label>
-                                <select id="sch-day" class="w-full mt-1 p-2 border rounded-xl bg-white">
-                                    <option value="0">Thứ Hai</option>
-                                    <option value="1">Thứ Ba</option>
-                                    <option value="2">Thứ Tư</option>
-                                    <option value="3">Thứ Năm</option>
-                                    <option value="4">Thứ Sáu</option>
-                                    <option value="5">Thứ Bảy</option>
-                                    <option value="6">Chủ Nhật</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Tên Môn Học *</label>
-                                <input type="text" id="sch-subject" placeholder="VD: Hệ Thống Nhúng" required class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-bold text-slate-600">Giảng Viên Phụ Trách *</label>
-                            <input type="text" id="sch-teacher" placeholder="VD: TS. Nguyễn Văn B" required class="w-full mt-1 p-2 border rounded-xl">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Bắt đầu *</label>
-                                <input type="time" id="sch-start" required class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Kết thúc *</label>
-                                <input type="time" id="sch-end" required class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Đến sớm tối đa (phút)</label>
-                                <input type="number" id="sch-early" value="30" class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-600">Trễ tối đa (phút)</label>
-                                <input type="number" id="sch-grace" value="15" class="w-full mt-1 p-2 border rounded-xl">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2 pt-2">
-                            <button type="submit" id="btn-save-schedule" class="flex-1 bg-slate-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition shadow">
-                                LƯU LỊCH HỌC
-                            </button>
-                            <button type="button" onclick="resetScheduleForm()" id="btn-cancel-schedule" class="hidden px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition">
-                                HỦY
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                            <span>📋</span> Danh Sách Các Ca Học Đã Lên Lịch
-                        </h2>
-                        <button onclick="fetchSchedules()" class="text-xs text-blue-600 hover:underline font-semibold">Làm mới</button>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-50 text-slate-600 border-b">
-                                    <th class="p-2.5">Phòng</th>
-                                    <th class="p-2.5">Lớp Học</th>
-                                    <th class="p-2.5">Thứ</th>
-                                    <th class="p-2.5">Thời Gian</th>
-                                    <th class="p-2.5">Môn Học</th>
-                                    <th class="p-2.5">Giảng Viên</th>
-                                    <th class="p-2.5 text-center">Đến Sớm</th>
-                                    <th class="p-2.5 text-center">Thao Tác</th>
-                                </tr>
-                            </thead>
-                            <tbody id="schedules-tbody" class="divide-y divide-slate-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
     </main>
 
-    <!-- MODAL ĐĂNG NHẬP GỘP DUY NHẤT -->
-    <div id="login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
-            <div class="flex items-center gap-3 text-blue-600">
-                <span class="text-2xl">🔐</span>
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Đăng Nhập Hệ Thống</h3>
-                    <p class="text-xs text-slate-500">Chọn vai trò của bạn để tiếp tục</p>
+    <!-- MODAL SỔ ĐIỂM DANH THEO LỚP & CA HỌC (TÍCH HỢP NÚT TẢI EXCEL) -->
+    <div id="class-attendance-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] relative z-50">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+                        📋
+                    </div>
+                    <div>
+                        <h3 id="modal-class-title" class="text-base font-bold text-slate-900">Sổ Điểm Danh Lớp</h3>
+                        <p id="modal-class-subtitle" class="text-xs text-slate-500"></p>
+                    </div>
                 </div>
-            </div>
-
-            <!-- CHỌN VAI TRÒ -->
-            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-                <button type="button" id="role-select-student" onclick="setLoginRole('student')" class="py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm">
-                    🎓 Sinh Viên
-                </button>
-                <button type="button" id="role-select-teacher" onclick="setLoginRole('teacher')" class="py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900">
-                    👨‍🏫 Giảng Viên
+                <button onclick="closeClassAttendanceModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold p-2 cursor-pointer">
+                    ✕
                 </button>
             </div>
 
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs font-bold text-slate-700 block mb-1" id="login-user-label">Mã Sinh Viên</label>
-                    <input type="text" id="login-username" class="w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono">
+            <div class="p-6 overflow-y-auto flex-1 space-y-4">
+                <div id="modal-loading-indicator" class="text-center py-8 text-xs text-slate-500 font-semibold">
+                    🔄 Đang tải dữ liệu điểm danh...
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-700 block mb-1">Mật khẩu</label>
-                    <input type="password" id="login-password" placeholder="Nhập mật khẩu..." class="w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <div id="modal-table-container" class="hidden overflow-x-auto border rounded-xl">
+                    <table id="modal-attendance-table" class="w-full text-left border-collapse text-xs">
+                        <thead id="modal-table-head" class="bg-slate-50 text-slate-700 border-b"></thead>
+                        <tbody id="modal-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="flex gap-2.5 pt-2">
-                <button onclick="closeLoginModal()" class="flex-1 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between rounded-b-2xl">
+                <button onclick="exportClassAttendanceToExcel()" id="btn-export-excel" class="px-5 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2 transition cursor-pointer">
+                    <span>📊</span> Tải File Excel Tổng Kết (.xlsx)
+                </button>
+                <button onclick="closeClassAttendanceModal()" class="px-5 py-2.5 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer">
                     Đóng
-                </button>
-                <button onclick="submitAuthLogin()" class="flex-1 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm">
-                    Xác Nhận
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL ĐĂNG NHẬP -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4 relative z-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5 text-blue-600">
+                    <span class="text-2xl">🔐</span>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Đăng Nhập Hệ Thống</h3>
+                        <p class="text-xs text-slate-500">Chọn vai trò của bạn để tiếp tục</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeLoginModal()" class="text-slate-400 hover:text-slate-600 font-bold p-1 text-lg cursor-pointer">✕</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                <button type="button" id="role-select-student" onclick="setLoginRole('student')" class="py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm cursor-pointer">
+                    🎓 Sinh Viên
+                </button>
+                <button type="button" id="role-select-teacher" onclick="setLoginRole('teacher')" class="py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900 cursor-pointer">
+                    👨‍🏫 Giảng Viên
+                </button>
+            </div>
+
+            <form onsubmit="event.preventDefault(); submitAuthLogin();" class="space-y-3">
+                <div>
+                    <label class="text-xs font-bold text-slate-700 block mb-1" id="login-user-label">Mã Sinh Viên</label>
+                    <input type="text" id="login-username" required placeholder="Nhập mã sinh viên..." class="w-full p-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono bg-white">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-700 block mb-1">Mật khẩu</label>
+                    <input type="password" id="login-password" required placeholder="Nhập mật khẩu..." class="w-full p-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                </div>
+
+                <div class="flex gap-2.5 pt-2">
+                    <button type="button" onclick="closeLoginModal()" class="flex-1 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer">
+                        Đóng
+                    </button>
+                    <button type="submit" id="btn-submit-auth" class="flex-1 py-2.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm cursor-pointer">
+                        Xác Nhận
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL XÓA SINH VIÊN -->
-    <div id="delete-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4">
+    <div id="delete-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4 relative z-50">
             <div class="flex items-center gap-3 text-rose-600">
                 <span class="text-2xl">🔒</span>
                 <div>
@@ -659,28 +613,30 @@
 
             <div>
                 <label class="text-xs font-bold text-slate-700 block mb-1">Mật Khẩu Quản Trị *</label>
-                <input type="password" id="admin-pass-input" placeholder="Nhập mật khẩu..." class="w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-rose-500">
+                <input type="password" id="admin-pass-input" placeholder="Nhập mật khẩu..." class="w-full p-2.5 text-sm border rounded-xl outline-none focus:ring-2 focus:ring-rose-500 bg-white">
             </div>
 
             <div class="flex gap-2.5 pt-2">
-                <button onclick="closeDeleteModal()" class="flex-1 py-2 text-xs font-semibold rounded-xl border text-slate-600">
+                <button onclick="closeDeleteModal()" class="flex-1 py-2 text-xs font-semibold rounded-xl border text-slate-600 cursor-pointer">
                     Hủy Bỏ
                 </button>
-                <button onclick="confirmDeleteStudent()" class="flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white shadow-sm">
+                <button onclick="confirmDeleteStudent()" class="flex-1 py-2 text-xs font-bold rounded-xl bg-rose-600 text-white shadow-sm cursor-pointer">
                     Xác Nhận Xóa
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT XỬ LÝ TOÀN BỘ LOGIC CLIENT -->
     <script>
-        // ==============================================================
-        // 1. PHÂN QUYỀN ĐĂNG NHẬP DUY NHẤT (SINGLE SESSION)
-        // ==============================================================
         let currentAuthRole = 'student';
         let currentToken = sessionStorage.getItem("auth_token") || null;
         let currentUserRole = sessionStorage.getItem("user_role") || null;
+        let allSchedulesData = [];
+        let currentViewingClass = null;
+        let currentViewingSubject = null;
+        let currentViewingStartDate = null;
+        let currentViewingEndDate = null;
+        let currentAttendanceExportData = null;
 
         function updateRoleUI() {
             const btnAuth = document.getElementById("btn-auth-main");
@@ -693,7 +649,7 @@
 
             if (currentToken && currentUserRole === 'admin') {
                 btnAuth.textContent = "🚪 Đăng Xuất";
-                btnAuth.className = "text-xs px-4 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold transition whitespace-nowrap shadow-sm";
+                btnAuth.className = "text-xs px-4 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold transition whitespace-nowrap shadow-sm cursor-pointer";
                 roleBadge.textContent = "Giảng Viên (Admin)";
                 roleBadge.className = "text-[11px] text-emerald-600 font-bold whitespace-nowrap";
                 teacherElements.forEach(el => el.classList.remove("hidden"));
@@ -707,7 +663,7 @@
                 
             } else if (currentToken && currentUserRole === 'student') {
                 btnAuth.textContent = "🚪 Đăng Xuất";
-                btnAuth.className = "text-xs px-4 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold transition whitespace-nowrap shadow-sm";
+                btnAuth.className = "text-xs px-4 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold transition whitespace-nowrap shadow-sm cursor-pointer";
                 roleBadge.textContent = "Sinh Viên: " + (sessionStorage.getItem("user_name") || "");
                 roleBadge.className = "text-[11px] text-blue-600 font-bold whitespace-nowrap";
                 teacherElements.forEach(el => el.classList.add("hidden"));
@@ -722,7 +678,7 @@
 
             } else {
                 btnAuth.textContent = "🔑 Đăng Nhập";
-                btnAuth.className = "text-xs px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition whitespace-nowrap shadow-sm";
+                btnAuth.className = "text-xs px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition whitespace-nowrap shadow-sm cursor-pointer";
                 roleBadge.textContent = "Chưa đăng nhập";
                 roleBadge.className = "text-[11px] text-slate-500 whitespace-nowrap";
                 teacherElements.forEach(el => el.classList.add("hidden"));
@@ -735,60 +691,75 @@
             }
         }
 
-        function handleUnifiedAuthAction() {
-            if (currentToken) {
-                sessionStorage.clear();
-                currentToken = null;
-                currentUserRole = null;
-                updateRoleUI();
-                switchTab('student-portal');
-                alert("Đã đăng xuất tài khoản thành công.");
-            } else {
-                openLoginModal();
-            }
-        }
-
-        function openLoginModal() {
-            setLoginRole('student');
-            document.getElementById("login-username").value = "";
-            document.getElementById("login-password").value = "";
-            document.getElementById("login-modal").classList.remove("hidden");
-            setTimeout(() => document.getElementById("login-username").focus(), 100);
-        }
-
-        function closeLoginModal() {
-            document.getElementById("login-modal").classList.add("hidden");
-        }
-
         function setLoginRole(role) {
             currentAuthRole = role;
             const btnStu = document.getElementById("role-select-student");
             const btnTea = document.getElementById("role-select-teacher");
             const labelUser = document.getElementById("login-user-label");
             const inpUser = document.getElementById("login-username");
+            const inpPass = document.getElementById("login-password");
+
+            inpPass.value = "";
 
             if (role === 'student') {
-                btnStu.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm";
-                btnTea.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900";
-                labelUser.textContent = "Mã Sinh Viên (VD: SV10221001)";
+                btnStu.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm cursor-pointer";
+                btnTea.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900 cursor-pointer";
+                labelUser.textContent = "Mã Sinh Viên (VD: 123220075)";
                 inpUser.placeholder = "Nhập mã sinh viên...";
                 inpUser.value = "";
             } else {
-                btnTea.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm";
-                btnStu.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900";
+                btnTea.className = "py-2 text-xs font-bold rounded-lg transition bg-white text-blue-600 shadow-sm cursor-pointer";
+                btnStu.className = "py-2 text-xs font-bold rounded-lg transition text-slate-500 hover:text-slate-900 cursor-pointer";
                 labelUser.textContent = "Tài Khoản Giảng Viên";
                 inpUser.placeholder = "admin";
                 inpUser.value = "admin";
             }
         }
 
+        function openLoginModal() {
+            setLoginRole('student');
+            const modal = document.getElementById("login-modal");
+            if (modal) {
+                modal.classList.remove("hidden");
+                setTimeout(() => {
+                    const inp = document.getElementById("login-username");
+                    if (inp) inp.focus();
+                }, 150);
+            }
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById("login-modal");
+            if (modal) modal.classList.add("hidden");
+        }
+
+        function handleUnifiedAuthAction() {
+            if (currentToken) {
+                if (confirm("Bạn có chắc chắn muốn đăng xuất tài khoản?")) {
+                    sessionStorage.clear();
+                    currentToken = null;
+                    currentUserRole = null;
+                    updateRoleUI();
+                    switchTab('student-portal');
+                    alert("Đã đăng xuất thành công.");
+                }
+            } else {
+                openLoginModal();
+            }
+        }
+
         async function submitAuthLogin() {
             const u = document.getElementById("login-username").value.trim();
             const p = document.getElementById("login-password").value;
+            const btnSubmit = document.getElementById("btn-submit-auth");
+
             if (!u || !p) {
-                alert("Vui lòng nhập đầy đủ thông tin tài khoản và mật khẩu!");
+                alert("Vui lòng nhập đầy đủ tài khoản và mật khẩu!");
                 return;
             }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Đang xử lý...";
 
             const endpoint = currentAuthRole === 'teacher' ? "/api/v1/auth/login" : "/api/v1/auth/student-login";
 
@@ -798,7 +769,9 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ username: u, password: p })
                 });
+
                 const data = await res.json();
+
                 if (res.ok) {
                     sessionStorage.clear();
                     currentToken = data.access_token;
@@ -809,27 +782,43 @@
                     if (currentUserRole === 'admin') {
                         closeLoginModal();
                         updateRoleUI();
-                        switchTab('dashboard');
-                        alert("Đăng nhập quyền Giảng Viên thành công!");
+                        switchTab('schedules');
                     } else {
                         sessionStorage.setItem("user_name", data.full_name);
                         sessionStorage.setItem("user_sub", data.student_id);
                         sessionStorage.setItem("user_class", data.class_name);
                         closeLoginModal();
                         updateRoleUI();
-                        alert("Đăng nhập Sinh Viên thành công!");
                     }
                 } else {
-                    alert("❌ Lỗi: " + (data.detail || "Sai thông tin đăng nhập!"));
+                    alert("❌ Đăng nhập thất bại: " + (data.detail || "Sai tài khoản hoặc mật khẩu!"));
                 }
-            } catch(e) {
-                alert("Lỗi kết nối Server: " + e.message);
+            } catch(err) {
+                alert("❌ Lỗi kết nối Server: " + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = "Xác Nhận";
             }
         }
 
-        // ==============================================================
-        // 2. LOGIC TRA CỨU ĐIỂM DANH (CẢ SV VÀ GV)
-        // ==============================================================
+        async function triggerSyncToEdgeNow() {
+            if (currentUserRole !== 'admin' || !currentToken) return;
+            try {
+                const res = await fetch("/api/v1/edge/trigger-sync-all", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${currentToken}` }
+                });
+                const d = await res.json();
+                if (res.ok) {
+                    alert("📡 " + d.message);
+                } else {
+                    alert("Lỗi: " + (d.detail || "Không thể đồng bộ"));
+                }
+            } catch (e) {
+                alert("Lỗi kết nối: " + e.message);
+            }
+        }
+
         function renderAttendanceTable(logs) {
             const tbody = document.getElementById("my-attendance-tbody");
             tbody.innerHTML = '';
@@ -846,8 +835,7 @@
 
                 let badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
                 if (l.status === "Đi trễ") badgeClass = "bg-rose-100 text-rose-800 border-rose-200";
-                else if (l.status.includes("Không thuộc lớp")) badgeClass = "bg-amber-100 text-amber-800 border-amber-200";
-                else if (l.status === "Ngoài giờ học") badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
+                else if (l.status === "Vắng") badgeClass = "bg-rose-200 text-rose-900 border-rose-300 font-black";
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b">
@@ -872,9 +860,7 @@
                     headers: { "Authorization": `Bearer ${currentToken}` }
                 });
                 const data = await res.json();
-                if (res.ok) {
-                    renderAttendanceTable(data.logs);
-                }
+                if (res.ok) renderAttendanceTable(data.logs);
             } catch(e) {
                 console.error(e);
             }
@@ -882,10 +868,7 @@
 
         async function lookupStudentByTeacher() {
             const sid = document.getElementById("teacher-query-sid").value.trim().toUpperCase();
-            if (!sid) {
-                alert("Vui lòng nhập Mã Sinh Viên cần tra cứu!");
-                return;
-            }
+            if (!sid) return alert("Vui lòng nhập Mã Sinh Viên cần tra cứu!");
             try {
                 const res = await fetch(`/api/v1/students/lookup-attendance?student_id=${encodeURIComponent(sid)}`, {
                     headers: { "Authorization": `Bearer ${currentToken}` }
@@ -911,7 +894,7 @@
                 return;
             }
 
-            ['student-portal', 'dashboard', 'enroll', 'students', 'cameras', 'schedules'].forEach(t => {
+            ['student-portal', 'students', 'cameras', 'schedules'].forEach(t => {
                 const el = document.getElementById(`view-${t}`);
                 const btn = document.getElementById(`tab-btn-${t}`);
                 if (el) el.classList.add('hidden');
@@ -923,29 +906,346 @@
             if (activeView) activeView.classList.remove('hidden');
             if (activeBtn) activeBtn.classList.add('active-tab');
 
-            if (tabName === 'dashboard') loadExportFilters();
-            if (tabName === 'enroll') backToFormStep();
-            if (tabName === 'students') { stopDetection(); stopCamera(); fetchStudents(); }
+            if (tabName === 'students') { 
+                backToStudentsList();
+                fetchStudents(); 
+            }
             if (tabName === 'cameras') { stopDetection(); stopCamera(); fetchDevices(); }
-            if (tabName === 'schedules') { stopDetection(); stopCamera(); fetchSchedules(); }
+            if (tabName === 'schedules') { stopDetection(); stopCamera(); cancelEditSchedule(); fetchSchedules(); }
         }
 
-        // ==============================================================
-        // 3. EKYC TỰ ĐỘNG - CHỐNG RUNG ĐẦU & TỰ ĐỘNG PHÁT HIỆN MẶT GIẢ
-        // ==============================================================
-        let faceDetector = null;
-        let detectInterval = null;
-        let cameraStream = null;
+        // ================= ĐIỀU HƯỚNG CON TRONG QUẢN LÝ SINH VIÊN =================
+        function showEnrollSubView() {
+            document.getElementById('subview-students-list').classList.add('hidden');
+            document.getElementById('subview-students-enroll').classList.remove('hidden');
+            backToFormStep();
+        }
 
-        let currentPoseStep = 0; 
-        let isCapturing = false;
-        let isProcessingFrame = false;
-        let capturedPhotos = [];
+        function backToStudentsList() {
+            stopDetection();
+            stopCamera();
+            document.getElementById('subview-students-enroll').classList.add('hidden');
+            document.getElementById('subview-students-list').classList.remove('hidden');
+            fetchStudents();
+        }
 
-        let lastNosePos = { x: 0, y: 0 };
-        let stillFramesCount = 0;
-        const MOTION_THRESHOLD = 0.015;
-        const REQUIRED_STILL_FRAMES = 8;
+        // ================= XỬ LÝ LỊCH HỌC =================
+        document.getElementById('form-add-schedule').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (currentUserRole !== 'admin' || !currentToken) {
+                alert("Bạn cần quyền Giảng Viên để thao tác!");
+                return;
+            }
+
+            const editId = document.getElementById('sch-id').value;
+            const room_name = document.getElementById('sch-room').value.trim();
+            const class_name = document.getElementById('sch-class').value.trim();
+            const start_date = document.getElementById('sch-start-date').value;
+            const end_date = document.getElementById('sch-end-date').value;
+            const day_of_week = document.getElementById('sch-day').value;
+            const subject_name = document.getElementById('sch-subject').value.trim();
+            const teacher_name = document.getElementById('sch-teacher').value.trim();
+            const start_time = document.getElementById('sch-start').value;
+            const end_time = document.getElementById('sch-end').value;
+
+            if (!room_name || !class_name || !start_date || !end_date || !subject_name || !teacher_name || !start_time || !end_time) {
+                alert("Vui lòng điền đầy đủ các trường thông tin có dấu (*)!");
+                return;
+            }
+
+            if (start_date > end_date) {
+                alert("Ngày bắt đầu môn học phải trước hoặc bằng ngày kết thúc!");
+                return;
+            }
+
+            if (start_time >= end_time) {
+                alert("Giờ bắt đầu ca học phải trước giờ kết thúc!");
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('room_name', room_name);
+            fd.append('class_name', class_name);
+            fd.append('day_of_week', parseInt(day_of_week));
+            fd.append('subject_name', subject_name);
+            fd.append('teacher_name', teacher_name);
+            fd.append('start_date', start_date);
+            fd.append('end_date', end_date);
+            fd.append('start_time_str', start_time);
+            fd.append('end_time_str', end_time);
+            fd.append('grace_period', 15);
+
+            const url = editId ? `/api/v1/schedules/${editId}` : '/api/v1/schedules';
+            const method = editId ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${currentToken}` },
+                    body: fd
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert("🎉 " + data.message);
+                    cancelEditSchedule();
+                    fetchSchedules();
+                } else {
+                    alert("❌ Lỗi: " + (data.detail || "Không thể lưu lịch học"));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối Server: " + err.message);
+            }
+        });
+
+        async function fetchSchedules() {
+            try {
+                const res = await fetch('/api/v1/schedules/list');
+                const data = await res.json();
+                allSchedulesData = data;
+                const tbody = document.getElementById('schedules-tbody');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-slate-400 font-semibold text-xs">Chưa có ca học nào được thiết lập</td></tr>`;
+                    return;
+                }
+                data.forEach(s => {
+                    const classBtn = s.class_name 
+                        ? `<button onclick="openClassAttendanceModal('${s.class_name}', '${s.subject_name}', '${s.room_name}', '${s.time}', '${s.start_date}', '${s.end_date}')" 
+                                   class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer" 
+                                   title="Bấm vào để xem danh sách học sinh & điểm danh lớp ${s.class_name}">
+                                <span>👥</span> ${s.class_name}
+                           </button>`
+                        : `<span class="text-slate-400">Tất cả</span>`;
+
+                    const dateSpan = (s.start_date && s.end_date)
+                        ? `<span class="font-mono text-slate-600 text-[11px]">${s.start_date} <br>đến ${s.end_date}</span>`
+                        : `<span class="text-slate-400 text-xs">Chưa đặt</span>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 border-b">
+                            <td class="p-2.5 font-mono text-slate-400 font-bold">${s.id}</td>
+                            <td class="p-2.5 font-bold">${s.room_name}</td>
+                            <td class="p-2.5">${classBtn}</td>
+                            <td class="p-2.5">${dateSpan}</td>
+                            <td class="p-2.5 font-semibold text-blue-600">${s.day_text}</td>
+                            <td class="p-2.5 font-mono">${s.time}</td>
+                            <td class="p-2.5 font-medium">${s.subject_name}</td>
+                            <td class="p-2.5 text-center space-x-1">
+                                <button onclick="editScheduleItem(${s.id})" class="px-2 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md cursor-pointer">Sửa</button>
+                                <button onclick="deleteScheduleItem(${s.id})" class="px-2 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md cursor-pointer">Xóa</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function editScheduleItem(id) {
+            const item = allSchedulesData.find(s => s.id === id);
+            if (!item) return;
+
+            document.getElementById('sch-id').value = item.id;
+            document.getElementById('sch-room').value = item.room_name;
+            document.getElementById('sch-class').value = item.class_name;
+            document.getElementById('sch-start-date').value = item.start_date || '';
+            document.getElementById('sch-end-date').value = item.end_date || '';
+            document.getElementById('sch-day').value = item.day_of_week;
+            document.getElementById('sch-subject').value = item.subject_name;
+            document.getElementById('sch-teacher').value = item.teacher_name;
+            document.getElementById('sch-start').value = item.start_time;
+            document.getElementById('sch-end').value = item.end_time;
+
+            document.getElementById('sch-form-icon').textContent = '✏️';
+            document.getElementById('sch-form-title').textContent = 'Chỉnh Sửa Lịch Học';
+            const btnSave = document.getElementById('btn-save-schedule');
+            btnSave.textContent = '💾 CẬP NHẬT LỊCH HỌC';
+            btnSave.className = 'flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition shadow text-xs cursor-pointer';
+            document.getElementById('btn-cancel-schedule').classList.remove('hidden');
+
+            document.getElementById('form-add-schedule').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEditSchedule() {
+            document.getElementById('sch-id').value = '';
+            document.getElementById('form-add-schedule').reset();
+
+            document.getElementById('sch-form-icon').textContent = '➕';
+            document.getElementById('sch-form-title').textContent = 'Thêm / Chỉnh Sửa Lịch Học';
+            const btnSave = document.getElementById('btn-save-schedule');
+            btnSave.textContent = '➕ LƯU LỊCH HỌC';
+            btnSave.className = 'flex-1 bg-slate-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition shadow text-xs cursor-pointer';
+            document.getElementById('btn-cancel-schedule').classList.add('hidden');
+        }
+
+        async function deleteScheduleItem(id) {
+            if (currentUserRole !== 'admin') return;
+            if (!confirm("Bạn có chắc chắn muốn xóa ca học này?")) return;
+            try {
+                const res = await fetch(`/api/v1/schedules/${id}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${currentToken}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message);
+                    fetchSchedules();
+                }
+            } catch(e) {
+                alert("Lỗi kết nối: " + e.message);
+            }
+        }
+
+        // ================= POPUP XEM SỔ ĐIỂM DANH & XUẤT EXCEL =================
+        async function openClassAttendanceModal(className, subjectName, roomName, timeStr, startDate, endDate) {
+            currentViewingClass = className;
+            currentViewingSubject = subjectName;
+            currentViewingStartDate = startDate || '';
+            currentViewingEndDate = endDate || '';
+
+            document.getElementById("modal-class-title").textContent = `Sổ Điểm Danh Lớp ${className} — Môn: ${subjectName}`;
+            document.getElementById("modal-class-subtitle").textContent = `Phòng: ${roomName} | Khung giờ: ${timeStr} | Khoảng ngày: ${startDate || 'N/A'} đến ${endDate || 'N/A'}`;
+            document.getElementById("modal-loading-indicator").classList.remove("hidden");
+            document.getElementById("modal-table-container").classList.add("hidden");
+            document.getElementById("class-attendance-modal").classList.remove("hidden");
+
+            await reloadClassAttendanceData();
+        }
+
+        function closeClassAttendanceModal() {
+            currentViewingClass = null;
+            currentViewingSubject = null;
+            currentViewingStartDate = null;
+            currentViewingEndDate = null;
+            currentAttendanceExportData = null;
+            document.getElementById("class-attendance-modal").classList.add("hidden");
+        }
+
+        async function reloadClassAttendanceData() {
+            if (!currentViewingClass || !currentViewingSubject) return;
+
+            try {
+                const token = sessionStorage.getItem("auth_token");
+                let url = `/api/v1/attendance/preview-by-class?class_name=${encodeURIComponent(currentViewingClass)}&subject_name=${encodeURIComponent(currentViewingSubject)}`;
+                
+                if (currentViewingStartDate) url += `&start_date=${encodeURIComponent(currentViewingStartDate)}`;
+                if (currentViewingEndDate) url += `&end_date=${encodeURIComponent(currentViewingEndDate)}`;
+
+                const res = await fetch(url, {
+                    headers: token ? { "Authorization": `Bearer ${token}` } : {}
+                });
+                const data = await res.json();
+
+                document.getElementById("modal-loading-indicator").classList.add("hidden");
+                document.getElementById("modal-table-container").classList.remove("hidden");
+
+                if (!res.ok) {
+                    document.getElementById("modal-table-body").innerHTML = `<tr><td class="p-4 text-center text-rose-500 font-bold">${data.detail || 'Không tải được dữ liệu'}</td></tr>`;
+                    return;
+                }
+
+                currentAttendanceExportData = data;
+
+                const thead = document.getElementById("modal-table-head");
+                let headHtml = `<tr><th class="p-2.5 font-bold">STT</th><th class="p-2.5 font-bold">Mã SV</th><th class="p-2.5 font-bold">Họ và Tên</th>`;
+                data.dates.forEach(col => {
+                    headHtml += `<th class="p-2.5 font-bold text-center border-l whitespace-nowrap">${col}</th>`;
+                });
+                headHtml += `<th class="p-2.5 font-bold text-center bg-emerald-50 text-emerald-800 border-l whitespace-nowrap">Đúng giờ</th>
+                             <th class="p-2.5 font-bold text-center bg-rose-50 text-rose-800 whitespace-nowrap">Đi trễ</th>
+                             <th class="p-2.5 font-bold text-center bg-slate-100 text-slate-700 whitespace-nowrap">Vắng</th></tr>`;
+                thead.innerHTML = headHtml;
+
+                const tbody = document.getElementById("modal-table-body");
+                tbody.innerHTML = '';
+                data.records.forEach(r => {
+                    let rowHtml = `
+                        <tr class="hover:bg-slate-50 border-b">
+                            <td class="p-2.5 text-slate-400 font-mono">${r.stt}</td>
+                            <td class="p-2.5 font-mono font-bold text-blue-600">${r.student_id}</td>
+                            <td class="p-2.5 font-semibold text-slate-800">${r.full_name}</td>
+                    `;
+
+                    data.dates.forEach(col => {
+                        const status = r.dates[col] || 'Vắng';
+                        let badgeStyle = "text-slate-400";
+                        if (status === "Đúng giờ") badgeStyle = "text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold";
+                        else if (status === "Đi trễ") badgeStyle = "text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 font-bold";
+                        else if (status === "Vắng") badgeStyle = "text-rose-800 bg-rose-100/70 px-2 py-0.5 rounded font-black";
+
+                        rowHtml += `<td class="p-2.5 text-center border-l whitespace-nowrap"><span class="${badgeStyle}">${status}</span></td>`;
+                    });
+
+                    rowHtml += `
+                        <td class="p-2.5 text-center font-bold text-emerald-600 bg-emerald-50/50 border-l">${r.summary.dung}</td>
+                        <td class="p-2.5 text-center font-bold text-rose-600 bg-rose-50/50">${r.summary.tre}</td>
+                        <td class="p-2.5 text-center font-bold text-slate-600 bg-slate-50">${r.summary.vang}</td>
+                    </tr>`;
+                    tbody.innerHTML += rowHtml;
+                });
+
+            } catch(err) {
+                document.getElementById("modal-loading-indicator").textContent = "Lỗi kết nối: " + err.message;
+            }
+        }
+
+        function exportClassAttendanceToExcel() {
+            if (!currentAttendanceExportData || !currentAttendanceExportData.records || currentAttendanceExportData.records.length === 0) {
+                alert("Chưa có dữ liệu để xuất file Excel!");
+                return;
+            }
+
+            const data = currentAttendanceExportData;
+            const headers = ["STT", "Mã SV", "Họ và Tên", "Lớp"];
+            data.dates.forEach(d => headers.push(d));
+            headers.push("Đúng Giờ (Lần)", "Đi Trễ (Lần)", "Vắng (Lần)");
+
+            const rows = [];
+            data.records.forEach(r => {
+                const row = [
+                    r.stt,
+                    r.student_id,
+                    r.full_name,
+                    r.class_name
+                ];
+                data.dates.forEach(d => {
+                    row.push(r.dates[d] || "Vắng");
+                });
+                row.push(r.summary.dung, r.summary.tre, r.summary.vang);
+                rows.push(row);
+            });
+
+            const worksheetData = [
+                [`BÁO CÁO ĐIỂM DANH LỚP ${data.class_name.toUpperCase()} - MÔN: ${data.subject_name.toUpperCase()}`],
+                [`Thời gian xuất: ${new Date().toLocaleString("vi-VN")}`],
+                [],
+                headers,
+                ...rows
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const colWidths = headers.map(h => ({ wch: Math.max(h.length + 4, 12) }));
+            colWidths[2] = { wch: 25 };
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "DiemDanh");
+
+            const safeClass = data.class_name.replace(/\s+/g, '_');
+            const safeSubject = data.subject_name.replace(/\s+/g, '_');
+            const fileName = `DiemDanh_${safeClass}_${safeSubject}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // ================= MEDIAPIPE FACE DETECTION EKYC =================
+        let faceDetector = null, detectInterval = null, cameraStream = null;
+        let currentPoseStep = 0, isCapturing = false, isProcessingFrame = false, capturedPhotos = [];
+        let lastNosePos = { x: 0, y: 0 }, stillFramesCount = 0;
+        const MOTION_THRESHOLD = 0.015, REQUIRED_STILL_FRAMES = 8;
 
         const video = document.getElementById('ekyc-video');
         const canvas = document.getElementById('ekyc-canvas');
@@ -956,9 +1256,7 @@
         const countdownOverlay = document.getElementById('countdown-overlay');
         const countdownNum = document.getElementById('countdown-num');
         const enrollAlert = document.getElementById('enroll-alert');
-
-        let currentStudent = { id: '', name: '', className: '' };
-        let isOverwriteConfirmed = false;
+        let currentStudent = { id: '', name: '', className: '' }, isOverwriteConfirmed = false;
 
         async function goToFaceCaptureStep() {
             const sid = document.getElementById('stu-id').value.trim();
@@ -1008,13 +1306,8 @@
 
         async function initCameraAndDetector() {
             resetStepBoxes();
-            capturedPhotos = [];
-            currentPoseStep = 0;
-            stillFramesCount = 0;
-            lastNosePos = { x: 0, y: 0 };
-            isCapturing = false;
-            isProcessingFrame = false;
-
+            capturedPhotos = []; currentPoseStep = 0; stillFramesCount = 0;
+            lastNosePos = { x: 0, y: 0 }; isCapturing = false; isProcessingFrame = false;
             instruction.innerHTML = '🔄 Đang khởi tạo camera và nạp mô hình AI...';
 
             try {
@@ -1031,10 +1324,7 @@
                     faceDetector = new FaceDetection({
                         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/${file}`
                     });
-                    faceDetector.setOptions({
-                        model: 'short',
-                        minDetectionConfidence: 0.6
-                    });
+                    faceDetector.setOptions({ model: 'short', minDetectionConfidence: 0.6 });
                     faceDetector.onResults(handleFaceDetectionPose);
                 }
 
@@ -1055,7 +1345,7 @@
                 }, 130);
 
             } catch (err) {
-                alert("Lỗi truy cập camera: " + err.message);
+                alert("Lỗi camera: " + err.message);
                 instruction.innerHTML = '❌ Lỗi: ' + err.message;
             }
         }
@@ -1084,7 +1374,6 @@
         function checkHeadStillness(currentNose) {
             const movement = Math.hypot(currentNose.x - lastNosePos.x, currentNose.y - lastNosePos.y);
             lastNosePos = { x: currentNose.x, y: currentNose.y };
-
             if (movement > MOTION_THRESHOLD) {
                 stillFramesCount = 0;
                 return false;
@@ -1131,7 +1420,6 @@
             const rightEye = landmarks[0];
             const leftEye = landmarks[1];
             const nose = landmarks[2];
-
             const eyeDist = Math.abs(leftEye.x - rightEye.x);
             if (eyeDist === 0) return;
             const noseRatio = (nose.x - rightEye.x) / eyeDist;
@@ -1141,20 +1429,15 @@
                 if (laserBeam) laserBeam.classList.remove('hidden');
             }
 
-            // BƯỚC 1: NHÌN THẲNG TRỰC DIỆN
             if (currentPoseStep === 1) {
                 const isFacingStraight = (noseRatio >= 0.42 && noseRatio <= 0.58);
-
                 if (isFacingStraight) {
                     const isStill = checkHeadStillness(nose);
-
                     if (isStill) {
                         setOvalUI('border-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.9)]', 'border-4 border-solid', 'Đã cố định - Đang chụp...', 'text-emerald-300');
                         instruction.innerHTML = '📸 <b>Đang chụp ảnh trực diện!</b> Giữ yên...';
-
                         triggerCaptureStep(1, "Nhìn Thẳng", () => {
-                            currentPoseStep = 2;
-                            stillFramesCount = 0;
+                            currentPoseStep = 2; stillFramesCount = 0;
                         });
                     } else {
                         const percent = Math.min(100, Math.round((stillFramesCount / REQUIRED_STILL_FRAMES) * 100));
@@ -1168,17 +1451,13 @@
                 }
             } else if (currentPoseStep === 2) {
                 const isTurnedLeft = (noseRatio > 0.63);
-
                 if (isTurnedLeft) {
                     const isStill = checkHeadStillness(nose);
-
                     if (isStill) {
                         setOvalUI('border-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.9)]', 'border-4 border-solid', 'Đã cố định - Đang chụp...', 'text-emerald-300');
                         instruction.innerHTML = '📸 <b>Đang chụp góc trái!</b> Giữ yên...';
-
                         triggerCaptureStep(2, "Góc Trái", () => {
-                            currentPoseStep = 3;
-                            stillFramesCount = 0;
+                            currentPoseStep = 3; stillFramesCount = 0;
                         });
                     } else {
                         const percent = Math.min(100, Math.round((stillFramesCount / REQUIRED_STILL_FRAMES) * 100));
@@ -1192,14 +1471,11 @@
                 }
             } else if (currentPoseStep === 3) {
                 const isTurnedRight = (noseRatio < 0.37);
-
                 if (isTurnedRight) {
                     const isStill = checkHeadStillness(nose);
-
                     if (isStill) {
                         setOvalUI('border-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.9)]', 'border-4 border-solid', 'Đã cố định - Đang chụp...', 'text-emerald-300');
                         instruction.innerHTML = '📸 <b>Đang chụp góc phải!</b> Giữ yên...';
-
                         triggerCaptureStep(3, "Góc Phải", () => {
                             currentPoseStep = 4;
                             stopDetection();
@@ -1220,7 +1496,6 @@
 
         function triggerCaptureStep(stepIndex, stepLabel, nextCallback) {
             isCapturing = true;
-
             if (countdownOverlay) {
                 countdownOverlay.classList.remove('hidden');
                 if (countdownNum) countdownNum.textContent = '📸';
@@ -1254,7 +1529,6 @@
             }, 'image/jpeg', 0.95);
         }
 
-        // HÀM GỬI ẢNH VÀ XỬ LÝ LỖI TỪ CHỐI GIẢ MẠO TỪ FEATURE_EXTRACTOR
         async function submitAllToAI() {
             instruction.innerHTML = '⏳ <b>Đang kiểm định AI:</b> Chạy kiểm tra chống giả mạo (MiniFASNet)...';
             if (laserBeam) laserBeam.classList.add('hidden');
@@ -1280,21 +1554,19 @@
 
                 if (res.ok) {
                     enrollAlert.className = 'text-xs font-bold text-center p-3 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200';
-                    enrollAlert.textContent = '🎉 ' + result.message;
+                    enrollAlert.textContent = '🎉 ' + result.message + ' (Đã đồng bộ vector xuống Edge Camera)';
 
                     setTimeout(() => {
                         document.getElementById('stu-id').value = '';
                         document.getElementById('stu-name').value = '';
                         document.getElementById('stu-class').value = '';
-                        backToFormStep();
-                    }, 3000);
+                        backToStudentsList();
+                    }, 2500);
                 } else {
-                    // PHÁT HIỆN MẶT GIẢ / ĐIỆN THOẠI (HTTP 400)
                     enrollAlert.className = 'text-xs font-bold text-center p-3 rounded-xl bg-rose-100 text-rose-800 border border-rose-300';
                     enrollAlert.innerHTML = '🚫 <b>TỪ CHỐI ĐĂNG KÝ:</b> ' + (result.detail || 'Khuôn mặt không hợp lệ!');
                     instruction.innerHTML = '❌ <b class="text-rose-600">Phát hiện gian lận:</b> Không được dùng điện thoại hoặc ảnh chụp lại!';
 
-                    // Dừng 4 giây rồi trả về bước quét ban đầu để thử lại bằng người thật
                     setTimeout(() => {
                         backToFormStep();
                     }, 4000);
@@ -1306,196 +1578,6 @@
                     enrollAlert.textContent = 'Lỗi kết nối Server: ' + err.message;
                 }
             }
-        }
-
-        // ==============================================================
-        // 4. CÁC HÀM QUẢN TRỊ DÀNH CHO GIẢNG VIÊN (TRA CỨU VÀ TẢI EXCEL)
-        // ==============================================================
-        async function loadExportFilters() {
-            try {
-                const resStudents = await fetch('/api/v1/students/list');
-                const dataStudents = await resStudents.json();
-                const classSelect = document.getElementById('export-class');
-                classSelect.innerHTML = '<option value="">-- Chọn lớp học --</option>';
-                dataStudents.classes.forEach(c => {
-                    classSelect.innerHTML += `<option value="${c}">Lớp ${c}</option>`;
-                });
-
-                const resSubjects = await fetch('/api/v1/schedules/subjects');
-                const dataSubjects = await resSubjects.json();
-                const subjSelect = document.getElementById('export-subject');
-                subjSelect.innerHTML = '<option value="">-- Chọn môn học --</option>';
-                dataSubjects.forEach(s => {
-                    subjSelect.innerHTML += `<option value="${s}">${s}</option>`;
-                });
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-        // HÀM TRA CỨU VÀ HIỂN THỊ MA TRẬN TRÊN BẢNG
-        async function previewClassAttendance() {
-            if (currentUserRole !== 'admin' || !currentToken) {
-                alert("Cần quyền Giảng viên để thực hiện chức năng này!");
-                return;
-            }
-
-            const className = document.getElementById('export-class').value;
-            const subjectName = document.getElementById('export-subject').value;
-            const startDate = document.getElementById('export-start-date').value;
-            const endDate = document.getElementById('export-end-date').value;
-
-            if (!className || !subjectName) {
-                alert("Vui lòng chọn đầy đủ Lớp và Môn học!");
-                return;
-            }
-
-            let url = `/api/v1/attendance/preview-by-class?class_name=${encodeURIComponent(className)}&subject_name=${encodeURIComponent(subjectName)}`;
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-
-            try {
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${currentToken}` }
-                });
-                const data = await res.json();
-
-                if (!res.ok) {
-                    alert("Lỗi: " + (data.detail || "Không lấy được dữ liệu"));
-                    return;
-                }
-
-                // Render Header bảng
-                const thead = document.getElementById('preview-table-head');
-                let headHtml = `
-                    <tr>
-                        <th class="p-2.5 font-bold">STT</th>
-                        <th class="p-2.5 font-bold">Mã SV</th>
-                        <th class="p-2.5 font-bold">Họ và Tên</th>
-                        <th class="p-2.5 font-bold">Lớp</th>
-                `;
-                data.dates.forEach(d => {
-                    headHtml += `<th class="p-2.5 font-bold text-center border-l">${d}</th>`;
-                });
-                headHtml += `
-                        <th class="p-2.5 font-bold text-center bg-emerald-50 text-emerald-800 border-l">Đúng giờ</th>
-                        <th class="p-2.5 font-bold text-center bg-rose-50 text-rose-800">Đi trễ</th>
-                        <th class="p-2.5 font-bold text-center bg-slate-100 text-slate-700">Vắng</th>
-                    </tr>
-                `;
-                thead.innerHTML = headHtml;
-
-                // Render Body bảng
-                const tbody = document.getElementById('preview-table-body');
-                tbody.innerHTML = '';
-                data.records.forEach(r => {
-                    let rowHtml = `
-                        <tr class="hover:bg-slate-50 border-b">
-                            <td class="p-2.5 text-slate-400 font-mono">${r.stt}</td>
-                            <td class="p-2.5 font-mono font-bold text-blue-600">${r.student_id}</td>
-                            <td class="p-2.5 font-medium">${r.full_name}</td>
-                            <td class="p-2.5">${r.class_name}</td>
-                    `;
-                    data.dates.forEach(d => {
-                        const status = r.dates[d] || 'Vắng';
-                        let badge = 'text-slate-400';
-                        if (status.includes('Đúng giờ')) badge = 'text-emerald-600 font-bold';
-                        else if (status.includes('Đi trễ')) badge = 'text-rose-600 font-bold';
-
-                        rowHtml += `<td class="p-2.5 text-center border-l ${badge}">${status}</td>`;
-                    });
-                    rowHtml += `
-                            <td class="p-2.5 text-center font-bold text-emerald-600 bg-emerald-50/50 border-l">${r.summary.dung}</td>
-                            <td class="p-2.5 text-center font-bold text-rose-600 bg-rose-50/50">${r.summary.tre}</td>
-                            <td class="p-2.5 text-center font-bold text-slate-600 bg-slate-50">${r.summary.vang}</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += rowHtml;
-                });
-
-                document.getElementById('preview-title').textContent = `Kết quả: Lớp ${data.class_name} - Môn ${data.subject_name}`;
-                document.getElementById('preview-count').textContent = `Tổng cộng: ${data.records.length} sinh viên`;
-                document.getElementById('preview-result-container').classList.remove('hidden');
-                document.getElementById('btn-export-excel').classList.remove('hidden');
-
-            } catch (err) {
-                alert("Lỗi kết nối Server: " + err.message);
-            }
-        }
-
-        // HÀM TẢI FILE EXCEL CÓ KÈM HEADER AUTH VÀ BLOB AN TOÀN
-        async function downloadClassAttendanceExcel() {
-            if (currentUserRole !== 'admin' || !currentToken) {
-                alert("Cần quyền Giảng viên / Quản trị viên để thực hiện!");
-                return;
-            }
-            const className = document.getElementById('export-class').value;
-            const subjectName = document.getElementById('export-subject').value;
-            const startDate = document.getElementById('export-start-date').value;
-            const endDate = document.getElementById('export-end-date').value;
-
-            if (!className || !subjectName) {
-                alert("Vui lòng chọn đầy đủ Lớp và Môn học!");
-                return;
-            }
-
-            let url = `/api/v1/attendance/export-by-class?class_name=${encodeURIComponent(className)}&subject_name=${encodeURIComponent(subjectName)}`;
-            if (startDate) url += `&start_date=${encodeURIComponent(startDate)}`;
-            if (endDate) url += `&end_date=${encodeURIComponent(endDate)}`;
-
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${currentToken}`
-                    }
-                });
-
-                if (!response.ok) {
-                    let errorMsg = "Không thể tải file báo cáo";
-                    try {
-                        const errData = await response.json();
-                        errorMsg = errData.detail || errorMsg;
-                    } catch (e) {
-                        errorMsg = await response.text();
-                    }
-                    alert("Lỗi tải báo cáo: " + errorMsg);
-                    return;
-                }
-
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-                a.download = `DiemDanh_${className}_${subjectName}_${today}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(downloadUrl);
-
-            } catch (error) {
-                alert("Lỗi kết nối khi tải file: " + error.message);
-            }
-        }
-
-        function closeTokenBox() {
-            document.getElementById('device-token-box').classList.add('hidden');
-            document.getElementById('generated-token-text').value = '';
-        }
-
-        function toggleViewNewToken() {
-            const input = document.getElementById('generated-token-text');
-            input.type = input.type === 'password' ? 'text' : 'password';
-        }
-
-        function copyGeneratedToken() {
-            const tokenInput = document.getElementById('generated-token-text');
-            tokenInput.type = 'text';
-            tokenInput.select();
-            navigator.clipboard.writeText(tokenInput.value);
-            alert("Đã sao chép mã Token thành công! Hộp thoại sẽ đóng lại để bảo mật.");
-            closeTokenBox();
         }
 
         async function fetchDevices() {
@@ -1521,11 +1603,11 @@
                                 <div class="flex items-center gap-1.5">
                                     <span id="token-masked-${idx}" class="bg-slate-100 px-2 py-0.5 rounded border text-slate-500 font-bold">••••••••••••</span>
                                     <span id="token-raw-${idx}" class="hidden bg-slate-100 px-1.5 py-0.5 rounded border text-slate-700">${d.device_token}</span>
-                                    <button type="button" onclick="toggleMaskToken(${idx})" class="text-xs text-slate-400">👁️</button>
+                                    <button type="button" onclick="toggleMaskToken(${idx})" class="text-xs text-slate-400 cursor-pointer">👁️</button>
                                 </div>
                             </td>
                             <td class="p-2.5 text-center">
-                                <button onclick="deleteDeviceItem('${d.device_id}')" class="px-2 py-1 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded font-bold text-[11px]">Xóa</button>
+                                <button onclick="deleteDeviceItem('${d.device_id}')" class="px-2 py-1 text-rose-600 hover:bg-rose-50 border border-rose-200 rounded font-bold text-[11px] cursor-pointer">Xóa</button>
                             </td>
                         </tr>
                     `;
@@ -1595,121 +1677,8 @@
             }
         }
 
-        // CRUD LỊCH HỌC
-        let currentSchedulesList = [];
-        async function fetchSchedules() {
-            try {
-                const res = await fetch('/api/v1/schedules/list');
-                const data = await res.json();
-                currentSchedulesList = data;
-                const tbody = document.getElementById('schedules-tbody');
-                tbody.innerHTML = '';
-                data.forEach(s => {
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50 border-b">
-                            <td class="p-2.5 font-bold">${s.room_name}</td>
-                            <td class="p-2.5 font-bold text-emerald-600"><span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded">${s.class_name || 'Tất cả'}</span></td>
-                            <td class="p-2.5 font-semibold text-blue-600">${s.day_text}</td>
-                            <td class="p-2.5 font-mono">${s.time}</td>
-                            <td class="p-2.5 font-medium">${s.subject_name}</td>
-                            <td class="p-2.5 text-slate-600">${s.teacher_name}</td>
-                            <td class="p-2.5 text-center font-bold">${s.early_arrival}p</td>
-                            <td class="p-2.5 text-center space-x-1">
-                                <button onclick="editScheduleItem(${s.id})" class="px-2 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-md">Sửa</button>
-                                <button onclick="deleteScheduleItem(${s.id})" class="px-2 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-md">Xóa</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch(e) {
-                console.error(e);
-            }
-        }
-
-        function editScheduleItem(id) {
-            const sch = currentSchedulesList.find(x => x.id === id);
-            if (!sch) return;
-            document.getElementById("sch-id").value = sch.id;
-            document.getElementById("sch-room").value = sch.room_name;
-            document.getElementById("sch-class").value = sch.class_name;
-            document.getElementById("sch-day").value = sch.day_of_week;
-            document.getElementById("sch-subject").value = sch.subject_name;
-            document.getElementById("sch-teacher").value = sch.teacher_name;
-            document.getElementById("sch-start").value = sch.start_time;
-            document.getElementById("sch-end").value = sch.end_time;
-            document.getElementById("sch-early").value = sch.early_arrival;
-            document.getElementById("sch-grace").value = sch.grace;
-            document.getElementById("btn-save-schedule").textContent = "CẬP NHẬT LỊCH HỌC";
-            document.getElementById("btn-cancel-schedule").classList.remove("hidden");
-        }
-
-        function resetScheduleForm() {
-            document.getElementById("form-add-schedule").reset();
-            document.getElementById("sch-id").value = "";
-            document.getElementById("btn-save-schedule").textContent = "LƯU LỊCH HỌC";
-            document.getElementById("btn-cancel-schedule").classList.add("hidden");
-        }
-
-        async function deleteScheduleItem(id) {
-            if (currentUserRole !== 'admin') return;
-            if (!confirm("Bạn có chắc chắn muốn xóa ca học này?")) return;
-            try {
-                const res = await fetch(`/api/v1/schedules/${id}`, {
-                    method: "DELETE",
-                    headers: { "Authorization": `Bearer ${currentToken}` }
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.message);
-                    fetchSchedules();
-                }
-            } catch(e) {
-                alert("Lỗi kết nối: " + e.message);
-            }
-        }
-
-        document.getElementById('form-add-schedule').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (currentUserRole !== 'admin') return;
-
-            const schId = document.getElementById("sch-id").value;
-            const fd = new FormData();
-            fd.append('room_name', document.getElementById('sch-room').value);
-            fd.append('class_name', document.getElementById('sch-class').value);
-            fd.append('day_of_week', document.getElementById('sch-day').value);
-            fd.append('subject_name', document.getElementById('sch-subject').value);
-            fd.append('teacher_name', document.getElementById('sch-teacher').value);
-            fd.append('start_time_str', document.getElementById('sch-start').value);
-            fd.append('end_time_str', document.getElementById('sch-end').value);
-            fd.append('early_arrival', document.getElementById('sch-early').value);
-            fd.append('grace_period', document.getElementById('sch-grace').value);
-
-            const url = schId ? `/api/v1/schedules/${schId}` : `/api/v1/schedules`;
-            const method = schId ? "PUT" : "POST";
-
-            try {
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { "Authorization": `Bearer ${currentToken}` },
-                    body: fd
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.message);
-                    resetScheduleForm();
-                    fetchSchedules();
-                } else {
-                    alert("Lỗi: " + (data.detail || "Thao tác thất bại"));
-                }
-            } catch(err) {
-                alert("Lỗi kết nối: " + err.message);
-            }
-        });
-
-        // QUẢN LÝ SINH VIÊN
         let searchTimeout = null;
         let pendingDeleteStudentId = null;
-
         function debounceSearch() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(fetchStudents, 300);
@@ -1755,7 +1724,7 @@
                             <td class="p-3.5 text-slate-500 font-mono text-xs">${stu.created_at}</td>
                             <td class="p-3.5 text-center">${vectorBadge}</td>
                             <td class="p-3.5 text-center">
-                                <button onclick="openDeleteModal('${stu.student_id}', '${stu.full_name}')" class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg">🗑️ Xóa</button>
+                                <button onclick="openDeleteModal('${stu.student_id}', '${stu.full_name}')" class="px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-lg cursor-pointer">🗑️ Xóa</button>
                             </td>
                         </tr>
                     `;
@@ -1768,7 +1737,7 @@
 
         function openDeleteModal(studentId, fullName) {
             pendingDeleteStudentId = studentId;
-            document.getElementById('delete-modal-msg').innerHTML = `Bạn có chắc muốn xóa sinh viên <b>${fullName}</b> (${studentId})?`;
+            document.getElementById('delete-modal-msg').innerHTML = `Bạn có chắc muốn xóa sinh viên <b>${fullName}</b> (${studentId})?<br><span class="text-rose-600 text-[11px] font-bold">Hệ thống sẽ đồng thời phát lệnh xóa vector khỏi tất cả Camera Edge.</span>`;
             document.getElementById('admin-pass-input').value = '';
             document.getElementById('delete-modal').classList.remove('hidden');
         }
@@ -1800,17 +1769,15 @@
             }
         }
 
-        // ==============================================================
-        // 5. WEBSOCKET NHẬN DIỆN THỜI GIAN THỰC
-        // ==============================================================
+        // ================= WEBSOCKET REALTIME =================
         const socketBadge = document.getElementById('socket-badge');
-        const attendanceTbody = document.getElementById('attendance-tbody');
         let ws = null;
 
         function connectWebSocket() {
-            ws = new WebSocket(`ws://${location.host}/ws`);
+            const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${proto}//${location.host}/ws`);
             ws.onopen = () => {
-                socketBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Server Online';
+                socketBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Server Online';
                 socketBadge.className = 'px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1.5 whitespace-nowrap';
             };
             ws.onclose = () => {
@@ -1820,41 +1787,27 @@
             };
             ws.onmessage = (event) => {
                 if (event.data === "pong") return;
-                const res = JSON.parse(event.data);
-                if (res.event === 'NEW_ATTENDANCE') {
-                    const item = res.data;
-                    let badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
-                    if (item.status === "Đi trễ") badgeClass = "bg-rose-100 text-rose-800 border-rose-200";
-                    else if (item.status.includes("Không thuộc lớp")) badgeClass = "bg-amber-100 text-amber-800 border-amber-200";
-                    else if (item.status === "Ngoài giờ học") badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
-
-                    const snapshotBtn = item.snapshot 
-                        ? `<a href="${item.snapshot}" target="_blank" class="px-2 py-1 text-xs font-bold bg-blue-50 text-blue-600 rounded-md border border-blue-200">Xem ảnh</a>`
-                        : `<span class="text-xs text-slate-400">Không có</span>`;
-
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50 border-b";
-                    tr.innerHTML = `
-                        <td class="p-3.5 font-bold">${item.room_name}</td>
-                        <td class="p-3.5">${item.subject_name}</td>
-                        <td class="p-3.5 font-mono font-bold text-blue-600">${item.student_id}</td>
-                        <td class="p-3.5 font-semibold">${item.full_name}</td>
-                        <td class="p-3.5 font-mono text-slate-500">${item.time}</td>
-                        <td class="p-3.5 text-center">${snapshotBtn}</td>
-                        <td class="p-3.5 text-center">
-                            <span class="px-2.5 py-1 rounded-md text-xs font-bold border ${badgeClass}">
-                                ${item.status}
-                            </span>
-                        </td>
-                    `;
-                    attendanceTbody.prepend(tr);
-                }
+                try {
+                    const res = JSON.parse(event.data);
+                    if (res.event === 'NEW_ATTENDANCE') {
+                        const item = res.data;
+                        if (currentViewingClass && item.class_name && item.class_name.includes(currentViewingClass)) {
+                            reloadClassAttendanceData();
+                        }
+                    }
+                } catch(e){}
             };
         }
 
-        // KHỞI ĐỘNG HỆ THỐNG
-        updateRoleUI();
-        connectWebSocket();
+        window.addEventListener('DOMContentLoaded', () => {
+            updateRoleUI();
+            connectWebSocket();
+            if (currentToken && currentUserRole === 'admin') {
+                fetchSchedules();
+                fetchDevices();
+                fetchStudents();
+            }
+        });
     </script>
 </body>
 </html>
