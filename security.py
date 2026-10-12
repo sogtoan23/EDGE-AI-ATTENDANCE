@@ -1,5 +1,5 @@
 import os
-import secrets
+import base64
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -10,36 +10,28 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # -------------------------------------------------------------
-# 1. CƠ CHẾ TỰ ĐỘNG SINH KHÓA & LƯU CỐ ĐỊNH VÀO FILE HOẶC BIẾN MÔI TRƯỜNG
+# 1. CẤU HÌNH MÃ HÓA VECTOR QUA BIẾN MÔI TRƯỜNG AES_SECRET_KEY
 # -------------------------------------------------------------
-KEY_FILE_PATH = "secret.key"
+# Lấy khóa từ Render Dashboard (AES_SECRET_KEY)
+RAW_AES_KEY = os.getenv("AES_SECRET_KEY", "12345678901234567890123456789012")
 
-def get_or_create_fernet_key() -> bytes:
+def get_fernet_cipher() -> Fernet:
     """
-    1. Ưu tiên biến môi trường FERNET_KEY (tiện cấu hình trên Render).
-    2. Nếu không có biến môi trường, đọc từ file secret.key.
-    3. Nếu chưa có file secret.key, tự động tạo mới và lưu vào file.
+    Chuyển đổi chuỗi AES 32 ký tự từ biến môi trường thành khóa Fernet hợp lệ
+    (Fernet yêu cầu chuỗi base64 URL-safe đúng 32 bytes nguyên bản).
     """
-    env_key = os.getenv("FERNET_KEY")
-    if env_key:
-        return env_key.encode("utf-8")
+    key_bytes = RAW_AES_KEY.encode("utf-8")
+    
+    # Cắt hoặc đệm vừa vặn 32 bytes phòng trường hợp chuỗi cấu hình dài/ngắn hơn
+    if len(key_bytes) < 32:
+        key_bytes = key_bytes.ljust(32, b"0")
+    else:
+        key_bytes = key_bytes[:32]
+        
+    fernet_key = base64.urlsafe_b64encode(key_bytes)
+    return Fernet(fernet_key)
 
-    if os.path.exists(KEY_FILE_PATH):
-        with open(KEY_FILE_PATH, "rb") as f:
-            key = f.read().strip()
-            if key:
-                return key
-
-    # Tự động sinh khóa Fernet chuẩn 32-byte URL-safe base64 một lần duy nhất
-    new_key = Fernet.generate_key()
-    with open(KEY_FILE_PATH, "wb") as f:
-        f.write(new_key)
-    print(f"[SECURITY] Đã tạo mới và lưu khóa mã hóa vĩnh viễn vào file: {KEY_FILE_PATH}")
-    return new_key
-
-# Khởi tạo đối tượng mã hóa giải mã Fernet cố định
-FERNET_KEY = get_or_create_fernet_key()
-cipher_suite = Fernet(FERNET_KEY)
+cipher_suite = get_fernet_cipher()
 
 def encrypt_vector_string(plain_text: str) -> str:
     """Mã hóa chuỗi JSON vector 512-D thành chuỗi bảo mật."""
@@ -51,7 +43,7 @@ def decrypt_vector_string(cipher_text: str) -> str:
 
 
 # -------------------------------------------------------------
-# 2. BẢO MẬT MẬT KHẨU (DÙNG TRỰC TIẾP BCRYPT THUẦN - BỎ PASSLIB)
+# 2. BẢO MẬT MẬT KHẨU (DÙNG TRỰC TIẾP BCRYPT THUẦN)
 # -------------------------------------------------------------
 def hash_password(password: str) -> str:
     """Hash mật khẩu (giới hạn tối đa 72 bytes theo chuẩn bcrypt)."""
@@ -77,7 +69,7 @@ ADMIN_PASSWORD_HASH = os.getenv(
 # -------------------------------------------------------------
 # 3. JWT ACCESS TOKEN
 # -------------------------------------------------------------
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "ATTENDANCE_SYSTEM_SECRET_KEY_JWT_2026_XYZ")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "EDGE_AI_SUPER_SECRET_KEY_2026_DA_NANG_X99")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 giờ
 
